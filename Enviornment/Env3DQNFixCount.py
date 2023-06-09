@@ -152,5 +152,5 @@ class Env:
             for i in self.pre_create:
                 self.pg_client1.execute_create_hypo(i)
             self.init_cost_sum = (np.array(self.pg_client1.get_queries_cost(self.workload))*self.frequencies).sum()
-            self.last_cost_sum = self.init_cost_sum
+            self.last_cost_sum = self.init_cost_sum                                           
         return self.last_state
