@@ -39,7 +39,7 @@ class Env:
         self.storage_trace_overall = list()
         self.min_cost_overall = list()
         self.min_indexes_overall = list()
-        self.current_min_cost = (np.array(self.pg_client1.get_queries_cost(workload)) * 0.1 * self.frequencies).sum()
+        self.current_min_cost = (np.array(self.db_client1.get_queries_cost(workload)) * 0.1 * self.frequencies).sum()
         self.current_min_index = np.zeros((len(candidates),), dtype=np.float)
 
         self.current_storage_sum = 0

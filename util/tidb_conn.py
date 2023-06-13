@@ -4,12 +4,13 @@ from typing import List
 import pandas as pd
 import time
 import pymysql
+import logging
 
 
 class TiDBHypo:
     def __init__(self):
         config_raw = ConfigParser()
-        config_raw.read(os.path.abspath('..') + '/configure.ini')
+        config_raw.read('configure.ini')
         defaults = config_raw.defaults()
         self.host = defaults.get('tidb_ip')
         self.port = defaults.get('tidb_port')
@@ -22,54 +23,89 @@ class TiDBHypo:
     def close(self):
         self.conn.close()
 
+
     def execute_create_hypo(self, index):
         schema = index.split("#")
-        # 修改为tidb的语法
-        sql = "CREATE INDEX START_X_IDx type hypo ON " + schema[0] + "(" + schema[1] + ");"
-        try:
-            cur = self.conn.cursor()
-            cur.execute(sql)
-            last_row_id = cur.lastrowid
-            cur.close()
-            return last_row_id
-        except Exception as e:
-            print(f"Failed to create hypo index '{sql}': {e}")
-            return None
-        # cur = self.conn.cursor()
-        # cur.execute(sql)
-        # return cur.lastrowid
-        
+        table_name = schema[0]
+        idx_cols = schema[1]
+        idx_name = f"hypo_{table_name}_{idx_cols}_idx" 
+        statement = (
+            f"create index {idx_name} type hypo "
+            f"on {table_name} ({idx_cols})"
+        )
+        cur = self.conn.cursor()
+        cur.execute(statement)
+        return cur.fetchall()
+
+
+    def get_hypo_indexes_from_one_table(self, table_name):
+        statement = f"show create table {table_name}"
+        result = self.exec_fetch(statement)
+        hypo_indexes = []
+        for line in result[1].split("\n"):
+            if "HYPO INDEX" in line:
+                tmp = line.split("`")
+                hypo_indexes.append(tmp[1])
+        return hypo_indexes
+    
+    
+    # TODO
     def execute_delete_hypo(self, oid):
-        sql = "DROP INDEX START_X_IDx;"
+        sql = "select * from hypopg_drop_index(" + str(oid) + ");"
         cur = self.conn.cursor()
         cur.execute(sql)
-        return True
+        rows = cur.fetchall()
+        flag = str(rows[0][0])
+        if flag == "t":
+            return True
+        return False
+
+    def _cleanup_query(self, query):
+        for query_statement in query.text.split(";"):
+            if "drop view" in query_statement:
+                self.exec_only(query_statement)
+                
+    def _prepare_query(self, query):
+        for query_statement in query.text.split(";"):
+            if "create view" in query_statement:
+                try:
+                    self.exec_only(query_statement)
+                except Exception as e:
+                    logging.error(e)
+            elif "select" in query_statement or "SELECT" in query_statement:
+                return query_statement
+    
+    def _get_plan(self, query):
+        query_text = self._prepare_query(query)
+        statement = f"explain format='verbose' {query_text}"
+        query_plan = self.exec_fetch(statement, False)
+        for line in query_plan:
+            if "stats:pseudo" in line[5]:
+                raise Exception("plan with pseudo stats " + str(query_plan))
+        self._cleanup_query(query)
+        return query_plan
 
     def get_queries_cost(self, query_list):
         cost_list: List[float] = list()
-        cur = self.conn.cursor()
         for i, query in enumerate(query_list):
-            query = "explain " + query
-            cur.execute(query)
-            rows = cur.fetchall()
-            df = pd.DataFrame(rows)
-            cost_info = str(df[0][0])
-            cost_list.append(float(cost_info[cost_info.index("..") + 2:cost_info.index(" rows=")]))
+            query_plan = self._get_plan(query)
+            cost = query_plan[0][2]
+            cost_list.append(float(cost))
         return cost_list
 
     def get_storage_cost(self, oid_list):
         costs = list()
         cur = self.conn.cursor()
         for i, oid in enumerate(oid_list):
-            cost_info = 0
             if oid == 0:
                 continue
-            sql = "select sum(data_length+index_length) from information_schema.tables where table_schema='" + self.database + "' and table_name='START_TABLE';"
+            sql = "select * from hypopg_relation_size(" + str(oid) +");"
             cur.execute(sql)
             rows = cur.fetchall()
             df = pd.DataFrame(rows)
-            cost_info = int(df[0][0])
-            costs.append(cost_info)
+            cost_info = str(df[0][0])
+            cost_long = int(cost_info)
+            costs.append(cost_long)
         return costs
 
     def execute_sql(self, sql):
@@ -77,46 +113,8 @@ class TiDBHypo:
         cur.execute(sql)
         self.conn.commit()
 
-    def delete_indexes(self):
-        sql = 'DROP INDEX START_X_IDx;'
-        self.execute_sql(sql)
-
-    def get_sel(self, table_name, condition):
-        cur = self.conn.cursor()
-        totalQuery = "select * from " + table_name + ";"
-        cur.execute("EXPLAIN " + totalQuery)
-        rows = cur.fetchall()[0][0]
-        total_rows = int(rows.split("rows=")[-1].split(" ")[0])
-
-        resQuery = "select * from " + table_name + " Where " + condition + ";"
-        cur.execute("EXPLAIN  " + resQuery)
-        rows = cur.fetchall()[0][0]
-        select_rows = int(rows.split("rows=")[-1].split(" ")[0])
-        return select_rows/total_rows
-
-    def get_rel_cost(self, query_list):
-        cost_list: List[float] = list()
-        cur = self.conn.cursor()
-        for i, query in enumerate(query_list):
-            _start = time.time()
-            query = "explain analyse" + query
-            cur.execute(query)
-            _end = time.time()
-            cost_list.append(_end-_start)
-        return cost_list
-
-    def create_indexes(self, indexes):
-        for index in indexes:
-            schema = index.split("#")
-            sql = 'CREATE INDEX START_X_IDx ON ' + schema[0] + "(" + schema[1] + ');'
-            self.execute_sql(sql)
-
-    def delete_t_indexes(self):
-        sql = "DROP INDEX START_X_IDx;"
-        self.execute_sql(sql)
-
     def get_tables(self, schema):
-        tables_sql = 'select table_name from information_schema.tables where table_schema=\''+schema+'\';'
+        tables_sql = 'select tablename from pg_tables where schemaname=\''+schema+'\';'
         cur = self.conn.cursor()
         cur.execute(tables_sql)
         rows = cur.fetchall()
@@ -126,12 +124,12 @@ class TiDBHypo:
         return table_names
 
     def get_attributes(self, table_name, schema):
-        attrs_sql = 'select column_name, column_type from information_schema.columns where table_schema=\''+schema+'\' and table_name=\''+table_name+'\''
+        attrs_sql = 'select column_name, data_type from information_schema.columns where table_schema=\''+schema+'\' and table_name=\''+table_name+'\''
         cur = self.conn.cursor()
         cur.execute(attrs_sql)
         rows = cur.fetchall()
         attrs = list()
         for i, attr in enumerate(rows):
-            info = str(attr[0]) + "#" + str(attr[1]) + ")"
+            info = str(attr[0]) + "#" + str(attr[1])
             attrs.append(info)
         return attrs

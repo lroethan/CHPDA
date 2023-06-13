@@ -10,10 +10,10 @@ import util.tidb_conn as tihypo
 def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a):
     hyperparameter['NAME'] = f"MA_9{x}"
     print("Loading workload...")
-    with open("workload.pickle", "rb") as wf:
+    with open("entry/workload.pickle", "rb") as wf:
         workload = pickle.load(wf)
     print("Loading candidate...")
-    with open("cands.pickle", "rb") as cf:
+    with open("entry/cands.pickle", "rb") as cf:
         index_candidates = pickle.load(cf)
     print(workload)
     if is_fix_count:
@@ -28,7 +28,7 @@ def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a):
 def get_performance(selected_indexes, frequencies):
     print(frequencies)
     frequencies = np.array(frequencies) / np.array(frequencies).sum()
-    with open("workload.pickle", "rb") as wf:
+    with open("entry/workload.pickle", "rb") as wf:
         workload = pickle.load(wf)
     tidb_client = tihypo.TiDBHypo()
     tidb_client.delete_indexes()
@@ -85,6 +85,6 @@ def entry(is_fix_count: bool, constraint):
         selected_indexes = run_dqn(is_fix_count, conf, constraint, False, False, False, 0)
 
     frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
-    get_performance(selected_indexes, frequencies)
+    print(get_performance(selected_indexes, frequencies))
 
 entry(True, 4)
