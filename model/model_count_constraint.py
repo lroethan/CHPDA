@@ -10,8 +10,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-import env.env_count_constraint as env
-import env.env_storage_constraint as env2
+import environment.env_count_constraint as env
+import environment.env_storage_constraint as env2
 from model import prioritized_replay_buffer as BufferX
 from model import replay_buffer as Buffer
 

@@ -7,7 +7,7 @@ import os
 import sys
 import torch.nn.functional as F
 
-import env.env_storage_constraint as env
+import environment.env_storage_constraint as env
 from tensorboardX import SummaryWriter
 
 import random
