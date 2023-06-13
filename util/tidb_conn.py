@@ -49,10 +49,10 @@ class TiDBHypo:
         )
         cur = self.conn.cursor()
         cur.execute(statement)
-        return cur.fetchall()
+        return idx_name
 
 
-    def get_hypo_indexes_from_one_table(self, table_name):
+    def get_hypo_indexes_from_table(self, table_name):
         statement = f"show create table {table_name}"
         result = self.exec_fetch(statement)
         hypo_indexes = []
@@ -62,17 +62,23 @@ class TiDBHypo:
                 hypo_indexes.append(tmp[1])
         return hypo_indexes
     
-    
-    # TODO
-    def execute_delete_hypo(self, oid):
-        sql = "select * from hypopg_drop_index(" + str(oid) + ");"
+    def execute_delete_hypo(self, table, idx_name):
+        statement = f"drop index {idx_name} on {table}"
         cur = self.conn.cursor()
-        cur.execute(sql)
-        rows = cur.fetchall()
-        flag = str(rows[0][0])
-        if flag == "t":
-            return True
-        return False
+        cur.execute(statement)
+        return cur.fetchall()
+    
+    
+    def delete_all_hypo_indexes_table(self, table_name):
+        indexes = self.get_hypo_indexes_from_table(table_name)
+        for idx in indexes:
+            self.execute_delete_hypo(table_name, idx)
+            
+    def delete_all_hypo_indexes_database(self): 
+        tables = self.get_tables(self.database)
+        for table in tables:
+            self.delete_all_hypo_indexes_table(table)
+            
 
     def _cleanup_query(self, query):
         for query_statement in query.text.split(";"):
@@ -107,21 +113,6 @@ class TiDBHypo:
             cost_list.append(float(cost))
         return cost_list
 
-    def get_storage_cost(self, oid_list):
-        costs = list()
-        cur = self.conn.cursor()
-        for i, oid in enumerate(oid_list):
-            if oid == 0:
-                continue
-            sql = "select * from hypopg_relation_size(" + str(oid) +");"
-            cur.execute(sql)
-            rows = cur.fetchall()
-            df = pd.DataFrame(rows)
-            cost_info = str(df[0][0])
-            cost_long = int(cost_info)
-            costs.append(cost_long)
-        return costs
-
     def execute_sql(self, sql):
         cur = self.conn.cursor()
         cur.execute(sql)
@@ -136,14 +127,3 @@ class TiDBHypo:
         for i, table_name in enumerate(rows):
             table_names.append(table_name[0])
         return table_names
-
-    def get_attributes(self, table_name, schema):
-        attrs_sql = 'select column_name, data_type from information_schema.columns where table_schema=\''+schema+'\' and table_name=\''+table_name+'\''
-        cur = self.conn.cursor()
-        cur.execute(attrs_sql)
-        rows = cur.fetchall()
-        attrs = list()
-        for i, attr in enumerate(rows):
-            info = str(attr[0]) + "#" + str(attr[1])
-            attrs.append(info)
-        return attrs

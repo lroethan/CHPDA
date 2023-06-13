@@ -10,7 +10,7 @@
             "type": "python",
             "request": "launch",
             "program": "/home/ubuntu/CODE/CHPDA/entry/main.py",
-            "pythonPath": "/home/ubuntu/miniconda3/envs/sb3/bin/python"
+            "python": "/home/ubuntu/miniconda3/envs/sb3/bin/python"
         }
     ]
 }

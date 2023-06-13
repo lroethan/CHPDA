@@ -56,14 +56,14 @@ class Env:
             current_index_len = 0
             start_sum = (np.array(self.db_client2.get_queries_cost(self.workload)) * self.frequencies).sum()
             for index in self.candidates:
-                oid = self.db_client2.execute_create_hypo(index)
+                idx_name, table_name = self.db_client2.execute_create_hypo(index)
                 cu_sum = (np.array(self.db_client2.get_queries_cost(self.workload)) * self.frequencies).sum()
                 x = (start_sum - cu_sum) / start_sum
                 if x > 0.4 and current_max < x:
                     current_max = x
                     current_index = index
                     current_index_len = current_index_len
-                self.db_client2.execute_delete_hypo(oid)
+                self.db_client2.execute_delete_hypo(idx_name, table_name)
             if current_index is None:
                 break
             pre_is.append(current_index)
