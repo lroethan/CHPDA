@@ -8,20 +8,34 @@ import logging
 
 
 class TiDBHypo:
-    def __init__(self):
+    def __init__(self, db_name):
         config_raw = ConfigParser()
         config_raw.read('configure.ini')
         defaults = config_raw.defaults()
+        if db_name is None:
+            db_name = 'test'
         self.host = defaults.get('tidb_ip')
         self.port = defaults.get('tidb_port')
         self.user = defaults.get('tidb_user')
         self.password = defaults.get('tidb_password')
         self.database = defaults.get('tidb_database')
-        self.conn = pymysql.connect(host=self.host, port=int(self.port), user=self.user, password=self.password,
-                                    database=self.database, charset='utf8')
+        self.conn = None
+        self.create_connection()
+        
 
     def close(self):
         self.conn.close()
+
+
+    def create_connection(self):
+        if self.conn:
+            self.close()
+        self.conn = pymysql.connect(host='127.0.0.1',
+                     port=4000,
+                     user='root',
+                     password='',
+                     database="{}".format(self.db_name),
+                     local_infile=True)
 
 
     def execute_create_hypo(self, index):
