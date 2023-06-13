@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
-
+import sys
+sys.path.append("/home/ubuntu/CODE/CHPDA/")
 import Model.Model3DQNFixCount as dqn_fc
 import Model.Model3DQNFixStorage as dqn_fs
 import Utility.TiDB as tihypo

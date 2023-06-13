@@ -24,11 +24,21 @@ class TiDBHypo:
 
     def execute_create_hypo(self, index):
         schema = index.split("#")
-        sql = "CREATE INDEX START_X_IDx ON " + schema[0] + "(" + schema[1] + ");"
-        cur = self.conn.cursor()
-        cur.execute(sql)
-        return cur.lastrowid
-
+        # 修改为tidb的语法
+        sql = "CREATE INDEX START_X_IDx type hypo ON " + schema[0] + "(" + schema[1] + ");"
+        try:
+            cur = self.conn.cursor()
+            cur.execute(sql)
+            last_row_id = cur.lastrowid
+            cur.close()
+            return last_row_id
+        except Exception as e:
+            print(f"Failed to create hypo index '{sql}': {e}")
+            return None
+        # cur = self.conn.cursor()
+        # cur.execute(sql)
+        # return cur.lastrowid
+        
     def execute_delete_hypo(self, oid):
         sql = "DROP INDEX START_X_IDx;"
         cur = self.conn.cursor()

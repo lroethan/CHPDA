@@ -1,5 +1,5 @@
 import numpy as np
-from Utility import PostgreSQL as pg
+import Utility.TiDB as tihypo
 import math
 from typing import List
 import sys
@@ -13,8 +13,8 @@ class Env:
         self.candidates = candidates
         # create real/hypothetical index
         self.mode = mode
-        self.pg_client1 = pg.PGHypo()
-        self.pg_client2 = pg.PGHypo()
+        self.pg_client1 = tihypo.TiDBHypo()
+        self.pg_client2 = tihypo.TiDBHypo()
         self._frequencies = [1265, 897, 643, 1190, 521, 1688, 778, 1999, 1690,1433, 1796, 1266, 1046, 1353]
         self.frequencies = np.array(self._frequencies) / np.array(self._frequencies).sum()
 
