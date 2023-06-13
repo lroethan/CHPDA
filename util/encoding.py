@@ -1,4 +1,4 @@
-import Utility.PostgreSQL as pg
+import util.pg_conn as pg
 
 
 class Attribute:

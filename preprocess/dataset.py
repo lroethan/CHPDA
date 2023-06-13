@@ -60,7 +60,6 @@ def load_mode_parameters(model_conf):
    :param model_conf: file name
    :return: parameters in json form
     """
-    path = os.path.abspath("..") + "/Conf/"+model_conf
+    path = os.path.abspath("..") + "/conf/"+model_conf
     f = open(path)
     return json.load(f)
-

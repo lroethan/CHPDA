@@ -7,7 +7,7 @@ import os
 import sys
 import torch.nn.functional as F
 
-import Enviornment.Env3DQNFixStorage as env
+import env.env_storage_constraint as env
 from tensorboardX import SummaryWriter
 
 import random
@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import math
 import time
 
-from Model import PR_Buffer as BufferX
+from model import prioritized_replay_buffer as BufferX
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -140,12 +140,12 @@ class DQN:
                 # h = item[1].register_hook(lambda grad: print(grad))
 
     def save(self):
-        print('====== Model Saved ======')
+        print('====== model Saved ======')
         torch.save(self.actor_target.state_dict(), directory + 'dqn.pth')
 
 
     def load(self):
-        print('====== Model Loaded ======')
+        print('====== model Loaded ======')
         self.actor.load_state_dict(torch.load(directory + 'dqn.pth'))
 
     def train(self, load, __x):

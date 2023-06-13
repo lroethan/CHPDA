@@ -1,13 +1,13 @@
 import pickle
 import psqlparse
-from Preprocess import Dataset as ds
-from Utility import Encoding as en
-from Utility import ParserForIndex as pi
+from preprocess import dataset as ds
+from util import encoding as en
+from util import index_parser as pi
 
 
 enc = en.encoding_schema()
 # path to your tpch_directory/dbgen
-work_dir = "/Users/lanhai/XProgram/PycharmProjects/2.18.0_rc2/dbgen"
+work_dir = ""
 w_size = 14
 wd_generator = ds.TPCH(work_dir, w_size)
 workload = wd_generator.gen_workloads()

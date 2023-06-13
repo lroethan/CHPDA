@@ -10,12 +10,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-import Enviornment.Env3DQNFixCount as env
-import Enviornment.Env3DQNFixStorage as env2
-from Model import PR_Buffer as BufferX
-from Model import ReplyBuffer as Buffer
+import env.env_count_constraint as env
+import env.env_storage_constraint as env2
+from model import prioritized_replay_buffer as BufferX
+from model import replay_buffer as Buffer
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if torch.cuda.is_available():
+    device = 'cuda'
+else:
+    device = 'cpu'
+
 script_name = os.path.basename(__file__)
 directory = './exp' + script_name + "mview" + '/'
 
@@ -84,7 +88,7 @@ class DNN(nn.Module):
         val = self.relu(self.val1(x))
         adv = self.relu(self.adv2(adv))
         val = self.relu(self.val2(val))
-        qvals = val + (adv-adv.mean())
+        qvals = val + (adv - adv.mean())
         return qvals
 
 
@@ -108,7 +112,8 @@ class DQN:
             self.actor = NN(self.state_dim, self.action_dim).to(device)
             self.actor_target = NN(self.state_dim, self.action_dim).to(device)
             self.actor_target.load_state_dict(self.actor.state_dict())
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), conf['LR']) #optim.SGD(self.actor.parameters(), lr=self.conf['LR'], momentum=0.9)#
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), conf[
+            'LR'])  # optim.SGD(self.actor.parameters(), lr=self.conf['LR'], momentum=0.9)
 
         self.replay_buffer = None
         # some monitor information
@@ -118,7 +123,7 @@ class DQN:
         self.actor_loss_trace = list()
 
         # environment
-        self.envx = env.Env(self.workload, self.action, self.index_mode,a)
+        self.envx = env.Env(self.workload, self.action, self.index_mode, a)
 
         # store the parameters
         self.writer = SummaryWriter(directory)
@@ -131,7 +136,7 @@ class DQN:
             action = [action]
             return action
         state = torch.unsqueeze(torch.FloatTensor(state), 0)
-        if np.random.randn() <= self.conf['EPISILO']: # *(1 - math.pow(0.5, t/50)):  #*(t/MAX_STEP):  # greedy policy
+        if np.random.randn() <= self.conf['EPISILO']:  # *(1 - math.pow(0.5, t/50)):  #*(t/MAX_STEP):  # greedy policy
             action_value = self.actor.forward(state)
             action = torch.max(action_value, 1)[1].data.numpy()
             return action
@@ -180,15 +185,15 @@ class DQN:
 
             if self.is_double:
                 next_batch = self.actor(next_state)
-                nx = next_batch.max(1)[1][:,None]
+                nx = next_batch.max(1)[1][:, None]
                 # max_act4next = np.argmax(q_eval_next, axis=1)
                 q_next = self.actor_target(next_state)
-                qx = q_next.gather(1,nx)
+                qx = q_next.gather(1, nx)
                 # q_target = reward + (1 - done) * self.conf['GAMMA'] * qx.max(1)[0].view(self.conf['BATCH_SIZE'], 1)
                 q_target = reward + (1 - done) * self.conf['GAMMA'] * qx
             else:
                 q_next = self.actor_target(next_state).detach()
-                q_target = reward + (1-done)*self.conf['GAMMA'] * q_next.max(1)[0].view(self.conf['BATCH_SIZE'], 1)
+                q_target = reward + (1 - done) * self.conf['GAMMA'] * q_next.max(1)[0].view(self.conf['BATCH_SIZE'], 1)
             actor_loss = F.mse_loss(q_eval, q_target)
             error = torch.abs(q_eval - q_target).data.numpy()
             if self.is_ps:
@@ -202,14 +207,14 @@ class DQN:
 
             self.actor_loss_trace.append(actor_loss.data.item())
             # for item in self.actor.named_parameters():
-                # h = item[1].register_hook(lambda grad: print(grad))
+            # h = item[1].register_hook(lambda grad: print(grad))
 
     def save(self):
         torch.save(self.actor_target.state_dict(), directory + 'dqn.pth')
-        print('====== Model Saved ======')
+        print('====== model Saved ======')
 
     def load(self):
-        print('====== Model Loaded ======')
+        print('====== model Loaded ======')
         self.actor.load_state_dict(torch.load(directory + 'dqn.pth'))
 
     def train(self, load, __x):
@@ -218,22 +223,25 @@ class DQN:
         is_first = True
         # check whether have an index will 90% improvement
         self.envx.max_count = __x
-        pre_create = self.envx.checkout()
+        pre_create = self.envx.checkout
         if not (pre_create is None):
             print(pre_create)
             if len(pre_create) >= __x:
                 return pre_create[:__x]
         if self.is_ps:
-            self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf['MEMORY_CAPACITY'], min(self.conf['LEARNING_START'],200*self.envx.max_count))
+            self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf['MEMORY_CAPACITY'],
+                                                                 min(self.conf['LEARNING_START'],
+                                                                     200 * self.envx.max_count))
         else:
-            self.replay_buffer = Buffer.ReplayBuffer(self.conf['MEMORY_CAPACITY'], min(self.conf['LEARNING_START'],200*self.envx.max_count))
+            self.replay_buffer = Buffer.ReplayBuffer(self.conf['MEMORY_CAPACITY'],
+                                                     min(self.conf['LEARNING_START'], 200 * self.envx.max_count))
         current_best_reward = 0
         current_best_index = None
         rewards = []
         __how_m = self.envx.max_count
         for ep in range(self.conf['EPISODES']):
-            print("======"+str(ep)+"=====")
-            state = self.envx.reset()
+            print("======" + str(ep) + "=====")
+            state = self.envx.reset
 
             t_r = 0
             _state = []
@@ -264,7 +272,7 @@ class DQN:
                             self.replay_buffer.add(1.0, (_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))
                         else:
                             self.replay_buffer.push((_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))'''
-                    if ep > (self.conf['EPISODES']-100) and t_r > current_best_reward:
+                    if ep > (self.conf['EPISODES'] - 100) and t_r > current_best_reward:
                         current_best_reward = t_r
                         current_best_index = self.envx.index_trace_overall[-1]
                         # print(current_best_index)
@@ -282,7 +290,7 @@ class DQN:
         plt.savefig(self.conf['NAME'] + "freq.png", dpi=120)
         plt.clf()
         plt.close()
-        plt.figure(__x+1)
+        plt.figure(__x + 1)
         x = range(len(rewards))
         y2 = rewards
         plt.plot(x, y2, marker='x')
@@ -294,5 +302,3 @@ class DQN:
             pickle.dump(self.envx.cost_trace_overall, f, protocol=0)
         print(current_best_reward)
         return current_best_index
-
-
