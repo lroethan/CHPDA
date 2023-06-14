@@ -85,4 +85,4 @@ def entry(is_fix_count: bool, constraint):
     frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
     print(get_performance(selected_indexes, frequencies))
 
-entry(True, 4)
+entry(True, 2)

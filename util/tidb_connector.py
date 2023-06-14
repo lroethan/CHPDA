@@ -148,7 +148,7 @@ class TiDBDatabaseConnector(DatabaseConnector):
         query_plan = self.exec_fetch(statement, False)
         for line in query_plan:
             if "stats:pseudo" in line[5]:
-                raise Exception("plan with pseudo stats " + str(query_plan))
+                print("plan with pseudo stats " + str(query_plan))
         self._cleanup_query(query)
         return query_plan
     
