@@ -88,6 +88,10 @@ class TiDBDatabaseConnector(DatabaseConnector):
         # 格式：table_name.hypo_index_name
         sql = f"show create table {table_name}"
         result = self.exec_fetch(sql)
+        print("===============result================")
+        print(sql)
+        print(table_name)
+        print(result)
         hypo_indexes = []
         for line in result[1].split("\n"):
             if "HYPO INDEX" in line:
@@ -102,7 +106,8 @@ class TiDBDatabaseConnector(DatabaseConnector):
         schema = index.split("#")
         table_name = schema[0]
         idx_cols = schema[1]
-        idx_name = f"hypo_{table_name}_{idx_cols}_idx" 
+        sql_idx_cols = idx_cols.replace(',', '_') # 只是用来给 idx_name 用的
+        idx_name = f"hypo_{table_name}_{sql_idx_cols}_idx" 
         
         statement = (
             f"create index {idx_name} type hypo "
@@ -170,9 +175,17 @@ class TiDBDatabaseConnector(DatabaseConnector):
         return [x[0] for x in result]
     
     
-    def delete_index(self):
+    def delete_indexes(self):
         tables = self.get_tables()
         for table in tables:
             indexes = self.show_simulated_index(table)
             for index in indexes:
                 self.execute_delete_hypo(index)
+                
+    def get_storage_cost(self, oid_list):
+        costs = list()
+        for i, oid in enumerate(oid_list):
+            cost_long = 0
+            costs.append(cost_long)
+            # print(cost_long)
+        return costs

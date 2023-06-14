@@ -21,7 +21,7 @@ class DatabaseConnector:
     def exec_fetch(self, statement, one=True):
         self._cursor.execute(statement)
         if one:
-            print(self._cursor.fetchone())
+            #print(self._cursor.fetchone())
             return self._cursor.fetchone()
         return self._cursor.fetchall()
 

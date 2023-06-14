@@ -261,9 +261,9 @@ class DQN:
                 _reward.append(reward)
                 _done.append(np.float(done))'''
                 if self.is_ps:
-                    self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float(done)))
+                    self.replay_buffer.add(1.0, (state, next_state, action, reward, np.cfloat(done)))
                 else:
-                    self.replay_buffer.push((state, next_state, action, reward, np.float(done)))
+                    self.replay_buffer.push((state, next_state, action, reward, np.cfloat(done)))
                 # if self.replay_buffer.can_update():
                 #    self.update()
                 if done:

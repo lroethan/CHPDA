@@ -28,7 +28,7 @@ class Env:
         self.last_cost_sum = self.init_cost_sum
 
         # utility info
-        self.index_oids =  np.zeros(len(candidates))
+        self.index_oids = ["" for _ in range(len(candidates))]
         self.performance_gain =  np.zeros(len(candidates))
         self.current_index_count = 0
         self.current_index = np.zeros(len(candidates))
@@ -57,14 +57,14 @@ class Env:
             current_index_len = 0
             start_sum = (np.array(self.db_client2.get_queries_cost(self.workload)) * self.frequencies).sum()
             for index in self.candidates:
-                idx_name, table_name = self.db_client2.execute_create_hypo(index)
+                ident, idx_name = self.db_client2.execute_create_hypo(index)
                 cu_sum = (np.array(self.db_client2.get_queries_cost(self.workload)) * self.frequencies).sum()
                 x = (start_sum - cu_sum) / start_sum
                 if x > 0.4 and current_max < x:
                     current_max = x
                     current_index = index
                     current_index_len = current_index_len
-                self.db_client2.execute_delete_hypo(idx_name)
+                self.db_client2.execute_delete_hypo(ident)
             if current_index is None:
                 break
             pre_is.append(current_index)
@@ -80,14 +80,22 @@ class Env:
 
     def step(self, action):
         action = action[0]
+        print("====================")
+        print(action)
+        print("====================")
         if self.current_index[action] != 0.0:
             # self.cost_trace_overall.append(self.last_cost_sum)
             # self.index_trace_overall.append(self.currenct_index)
             return self.last_state, 0, False
 
+        print("====================")
+        print(self.candidates)
+        print("====================")
         self.index_oids[action] = self.db_client1.execute_create_hypo(self.candidates[action])
+        print("====================111")
+        
         self.current_index[action] = 1.0
-        oids: List[float] = list()
+        oids: List[str] = list()
         oids.append(self.index_oids[action])
         storage_cost = self.db_client1.get_storage_cost(oids)[0]
         # print(storage_cost)
