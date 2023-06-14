@@ -7,16 +7,16 @@ import model.model_storage_constraint as dqn_fs
 import util.tidb_connector as ti_conn
 
 
-def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a):
+def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a, workload_path, cands_path):
     # Set name for experiment
     hyperparameter['NAME'] = f"TEST_{x}"
 
     # Load workload and candidate indexes
     print("Loading workload...")
-    with open("entry/workload.pickle", "rb") as wf:
+    with open(workload_path, "rb") as wf:
         workload = pickle.load(wf)
     print("Loading candidate indexes...")
-    with open("entry/cands.pickle", "rb") as cf:
+    with open(cands_path, "rb") as cf:
         index_candidates = pickle.load(cf)
 
     # Choose the appropriate DQN agent
@@ -32,12 +32,12 @@ def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a):
     return selected_indexes
 
 
-def get_performance(selected_indexes, frequencies):
+def get_performance(selected_indexes, frequencies, workload_path):
     # Normalize the frequencies
     frequencies = np.array(frequencies) / np.array(frequencies).sum()
 
     # Load the workload and connect to TiDB
-    with open("entry/workload.pickle", "rb") as wf:
+    with open(workload_path, "rb") as wf:
         workload = pickle.load(wf)
     tidb_client = ti_conn.TiDBDatabaseConnector("tpch")
 
@@ -95,7 +95,7 @@ conf = {
 }
 
 
-def entry(is_fix_count: bool, constraint):
+def entry(is_fix_count: bool, constraint, workload_path, cands_path):
     """
     Run the DQN algorithm with the specified constraint.
 
@@ -108,13 +108,17 @@ def entry(is_fix_count: bool, constraint):
 
     """
     if is_fix_count:
-        selected_indexes = run_dqn(is_fix_count, test_count_conf, constraint, False, True, True, 0)
+        selected_indexes = run_dqn(is_fix_count, test_count_conf, constraint, False, True, True, 0, workload_path, cands_path)
     else:
-        selected_indexes = run_dqn(is_fix_count, conf, constraint, False, False, False, 0)
+        selected_indexes = run_dqn(is_fix_count, conf, constraint, False, False, False, 0, workload_path, cands_path)
 
     frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
-    print(get_performance(selected_indexes, frequencies))
+    print(get_performance(selected_indexes, frequencies, workload_path))
 
 
 if __name__ == '__main__':
-    entry(True, 3)
+    
+    WORKLOAD_PATH = "entry/workload.pickle"
+    CANDS_PATH = "entry/cands.pickle"
+    
+    entry(True, 3, WORKLOAD_PATH, CANDS_PATH)
