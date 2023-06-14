@@ -80,24 +80,24 @@ class Env:
 
     def step(self, action):
         action = action[0]
-        print("====================")
-        print(action)
-        print("====================")
+        # print("====================")
+        # print(action)
+        # print("====================")
         if self.current_index[action] != 0.0:
             # self.cost_trace_overall.append(self.last_cost_sum)
             # self.index_trace_overall.append(self.currenct_index)
             return self.last_state, 0, False
 
-        print("====================")
-        print(self.candidates)
-        print("====================")
+        # print("====================")
+        # print(self.candidates)
+        # print("====================")
         self.index_oids[action] = self.db_client1.execute_create_hypo(self.candidates[action])
-        print("====================111")
+        # print("====================111")
         
         self.current_index[action] = 1.0
         oids: List[str] = list()
         oids.append(self.index_oids[action])
-        storage_cost = self.db_client1.get_storage_cost(oids)[0]
+        storage_cost = self.db_client1.get_storage_cost(oids)
         # print(storage_cost)
         self.current_storage_sum += storage_cost
         self.current_index_storage[action] = storage_cost

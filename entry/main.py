@@ -8,7 +8,7 @@ import util.tidb_connector as ti_conn
 
 
 def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a):
-    hyperparameter['NAME'] = f"MA_9{x}"
+    hyperparameter['NAME'] = f"TEST_{x}"
     print("Loading workload...")
     with open("entry/workload.pickle", "rb") as wf:
         workload = pickle.load(wf)
@@ -40,14 +40,26 @@ def get_performance(selected_indexes, frequencies):
     print((cost1 - cost2) / cost1)
 
 
+# conf21 = {
+#     "LR": 0.002,
+#     "EPISILO": 0.97,
+#     "Q_ITERATION": 200,
+#     "U_ITERATION": 5,
+#     "BATCH_SIZE": 64,
+#     "GAMMA": 0.95,
+#     "EPISODES": 800,
+#     "LEARNING_START": 1000,
+#     "MEMORY_CAPACITY": 20000,
+# }
+
 conf21 = {
-    "LR": 0.002,
-    "EPISILO": 0.97,
+    "LR": 0.1,
+    "EPISILO": 0.9,
     "Q_ITERATION": 200,
     "U_ITERATION": 5,
     "BATCH_SIZE": 64,
     "GAMMA": 0.95,
-    "EPISODES": 800,
+    "EPISODES": 20,
     "LEARNING_START": 1000,
     "MEMORY_CAPACITY": 20000,
 }
