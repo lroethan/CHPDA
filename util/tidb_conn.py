@@ -1,5 +1,4 @@
 import os
-from configparser import ConfigParser
 from typing import List
 import pandas as pd
 import time
@@ -9,20 +8,13 @@ import logging
 
 class TiDBHypo:
     def __init__(self, db_name):
-        config_raw = ConfigParser()
-        config_raw.read('configure.ini')
-        defaults = config_raw.defaults()
         if db_name is None:
             db_name = 'test'
-        self.host = defaults.get('tidb_ip')
-        self.port = defaults.get('tidb_port')
-        self.user = defaults.get('tidb_user')
-        self.password = defaults.get('tidb_password')
-        self.database = defaults.get('tidb_database')
+        self.dbname = db_name
         self.conn = None
         self.create_connection()
-        
-
+    
+    
     def close(self):
         self.conn.close()
 
@@ -36,8 +28,9 @@ class TiDBHypo:
                      password='',
                      database="{}".format(self.db_name),
                      local_infile=True)
+        self._cursor = self.conn.cursor()
 
-
+    
     def execute_create_hypo(self, index):
         schema = index.split("#")
         table_name = schema[0]
@@ -47,8 +40,7 @@ class TiDBHypo:
             f"create index {idx_name} type hypo "
             f"on {table_name} ({idx_cols})"
         )
-        cur = self.conn.cursor()
-        cur.execute(statement)
+        self._cursor.execute(statement)
         return idx_name
 
 
@@ -64,9 +56,7 @@ class TiDBHypo:
     
     def execute_delete_hypo(self, table, idx_name):
         statement = f"drop index {idx_name} on {table}"
-        cur = self.conn.cursor()
-        cur.execute(statement)
-        return cur.fetchall()
+        return self.exec_fetch(statement)
     
     
     def delete_all_hypo_indexes_table(self, table_name):
@@ -78,8 +68,21 @@ class TiDBHypo:
         tables = self.get_tables(self.database)
         for table in tables:
             self.delete_all_hypo_indexes_table(table)
-            
+    
+    # 执行sql语句
+    def exec_only(self, statement):
+        self._cursor.execute(statement)
 
+    
+    # 执行 SQL 并返回结果   
+    def exec_fetch(self, statement, one=True):
+        self._cursor.execute(statement)
+        if one:
+            print(self._cursor.fetchone())
+            return self._cursor.fetchone()
+        return self._cursor.fetchall()
+
+  
     def _cleanup_query(self, query):
         for query_statement in query.text.split(";"):
             if "drop view" in query_statement:
@@ -113,16 +116,9 @@ class TiDBHypo:
             cost_list.append(float(cost))
         return cost_list
 
-    def execute_sql(self, sql):
-        cur = self.conn.cursor()
-        cur.execute(sql)
-        self.conn.commit()
-
     def get_tables(self, schema):
         tables_sql = 'select tablename from pg_tables where schemaname=\''+schema+'\';'
-        cur = self.conn.cursor()
-        cur.execute(tables_sql)
-        rows = cur.fetchall()
+        rows = self.exec_fetch(tables_sql, False)
         table_names = list()
         for i, table_name in enumerate(rows):
             table_names.append(table_name[0])
