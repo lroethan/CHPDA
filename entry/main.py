@@ -70,7 +70,7 @@ def get_performance(selected_indexes, frequencies):
 #     "MEMORY_CAPACITY": 20000,
 # }
 
-conf21 = {
+test_count_conf = {
     "LR": 0.1,
     "EPISILO": 0.9,
     "Q_ITERATION": 200,
@@ -108,11 +108,13 @@ def entry(is_fix_count: bool, constraint):
 
     """
     if is_fix_count:
-        selected_indexes = run_dqn(is_fix_count, conf21, constraint, False, True, True, 0)
+        selected_indexes = run_dqn(is_fix_count, test_count_conf, constraint, False, True, True, 0)
     else:
         selected_indexes = run_dqn(is_fix_count, conf, constraint, False, False, False, 0)
 
     frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
     print(get_performance(selected_indexes, frequencies))
 
-entry(True, 3)
+
+if __name__ == '__main__':
+    entry(True, 3)

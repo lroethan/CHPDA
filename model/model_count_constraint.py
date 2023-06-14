@@ -98,12 +98,13 @@ class DQN:
         self.workload = workload
         self.action = action
         self.index_mode = index_mode
-
         self.state_dim = len(workload) + len(action)
-        # we do not need another flag to indicate 'deletion/creation'
+        # We do not need another flag to indicate 'deletion/creation'
         self.action_dim = len(action)
         self.is_ps = is_ps
         self.is_double = is_double
+        
+         # Initialize actor network
         if is_dnn:
             self.actor = DNN(self.state_dim, self.action_dim).to(device)
             self.actor_target = DNN(self.state_dim, self.action_dim).to(device)
@@ -112,11 +113,13 @@ class DQN:
             self.actor = NN(self.state_dim, self.action_dim).to(device)
             self.actor_target = NN(self.state_dim, self.action_dim).to(device)
             self.actor_target.load_state_dict(self.actor.state_dict())
+            
+        # Initialize actor optimizer
         self.actor_optimizer = optim.Adam(self.actor.parameters(), conf[
             'LR'])  # optim.SGD(self.actor.parameters(), lr=self.conf['LR'], momentum=0.9)
 
+        # Initialize replay buffer and monitoring variables
         self.replay_buffer = None
-        # some monitor information
         self.num_actor_update_iteration = 0
         self.num_training = 0
         self.index_mode = index_mode
@@ -125,9 +128,10 @@ class DQN:
         # environment
         self.envx = env.Env(self.workload, self.action, self.index_mode, a)
 
-        # store the parameters
+        # Initialize summary writer for storing parameters (Tensorboard)
         self.writer = SummaryWriter(directory)
 
+        # Initialize learn step counter
         self.learn_step_counter = 0
 
     def select_action(self, t, state):
