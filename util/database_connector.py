@@ -43,7 +43,7 @@ class DatabaseConnector:
         self.exec_only(statement)
 
     def _prepare_query(self, query):
-        for query_statement in query.text.split(";"):
+        for query_statement in query.split(";"):
             if "create view" in query_statement:
                 try:
                     self.exec_only(query_statement)

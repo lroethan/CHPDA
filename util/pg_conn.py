@@ -23,6 +23,7 @@ class PGHypo:
         self.conn.close()
 
     def execute_create_hypo(self, index):
+        # 给索引的字符串，创建虚拟索引
         schema = index.split("#")
         sql = "SELECT indexrelid FROM hypopg_create_index('CREATE INDEX ON " + schema[0] + "(" + schema[1] + ")') ;"
         cur = self.conn.cursor()
@@ -31,6 +32,7 @@ class PGHypo:
         return int(rows[0][0])
 
     def execute_delete_hypo(self, oid):
+        # 给索引的唯一标识符，删除虚拟索引
         sql = "select * from hypopg_drop_index(" + str(oid) + ");"
         cur = self.conn.cursor()
         cur.execute(sql)
@@ -41,6 +43,7 @@ class PGHypo:
         return False
 
     def get_queries_cost(self, query_list):
+        # 拿到工作负载的代价
         cost_list: List[float] = list()
         cur = self.conn.cursor()
         for i, query in enumerate(query_list):
@@ -74,6 +77,7 @@ class PGHypo:
         self.conn.commit()
 
     def delete_indexes(self):
+        # 删除所有虚拟索引
         sql = 'select * from hypopg_reset();'
         self.execute_sql(sql)
 

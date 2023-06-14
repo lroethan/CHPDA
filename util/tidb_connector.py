@@ -5,7 +5,7 @@ import time
 from typing import List
 import pandas as pd 
 
-from database_connector import DatabaseConnector
+from util.database_connector import DatabaseConnector
 
 class TiDBDatabaseConnector(DatabaseConnector):
     def __init__(self, db_name, autocommit=False):
@@ -84,18 +84,21 @@ class TiDBDatabaseConnector(DatabaseConnector):
         return True
     
     def show_simulated_index(self, table_name):
+        # 返回某个表所有的hypo index
+        # 格式：table_name.hypo_index_name
         sql = f"show create table {table_name}"
         result = self.exec_fetch(sql)
         hypo_indexes = []
         for line in result[1].split("\n"):
             if "HYPO INDEX" in line:
                 tmp = line.split("`")
-                hypo_indexes.append(tmp[1])
+                idx_name = tmp[1]
+                hypo = f"{table_name}.{idx_name}"
+                hypo_indexes.append(hypo)
         return hypo_indexes
     
         
     def _simulate_index(self, index):
-        # table_name = index.table()
         schema = index.split("#")
         table_name = schema[0]
         idx_cols = schema[1]
@@ -105,10 +108,11 @@ class TiDBDatabaseConnector(DatabaseConnector):
             f"create index {idx_name} type hypo "
             f"on {table_name} ({idx_cols})"
         )
-        return self.exec_fetch(statement)
-        # return (f"{table_name}.{idx_name}", idx_name)
+        self.exec_fetch(statement)
+        return (f"{table_name}.{idx_name}", idx_name)
 
     def _drop_simulated_index(self, ident):
+        # 按照表名.列名来删除某个虚拟索引
         table_name = ident.split(".")[0]
         idx_name = ident.split(".")[1]
         self.exec_only(f"drop index {idx_name} on {table_name}")
@@ -124,7 +128,7 @@ class TiDBDatabaseConnector(DatabaseConnector):
         raise Exception("use what-if API")
 
     def _cleanup_query(self, query):
-        for query_statement in query.text.split(";"):
+        for query_statement in query.split(";"):
             if "drop view" in query_statement:
                 self.exec_only(query_statement)
 
@@ -143,3 +147,32 @@ class TiDBDatabaseConnector(DatabaseConnector):
         self._cleanup_query(query)
         return query_plan
     
+    
+    def execute_create_hypo(self, index): 
+        return self._simulate_index(index)
+    
+    
+    def execute_delete_hypo(self, ident):
+        # ident 是指 表名.列名
+        return self._drop_simulated_index(ident)   
+    
+    def get_queries_cost(self, query_list):
+        cost_list: List[float] = list()
+        for i, query in enumerate(query_list):
+            query_plan = self._get_plan(query)
+            cost = query_plan[0][2]
+            cost_list.append(float(cost))
+        return cost_list
+    
+    
+    def get_tables(self):
+        result = self.exec_fetch("show tables", False)
+        return [x[0] for x in result]
+    
+    
+    def delete_index(self):
+        tables = self.get_tables()
+        for table in tables:
+            indexes = self.show_simulated_index(table)
+            for index in indexes:
+                self.execute_delete_hypo(index)

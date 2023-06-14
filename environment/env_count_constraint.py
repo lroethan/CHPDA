@@ -1,5 +1,5 @@
 import numpy as np
-import util.tidb_conn as tidb
+import util.tidb_connector as ti_conn
 from typing import List
 
 
@@ -12,8 +12,8 @@ class Env:
         self.candidates = candidates
         # create real/hypothetical index
         self.mode = mode
-        self.db_client1 = tidb.TiDBHypo()
-        self.db_client2 = tidb.TiDBHypo()
+        self.db_client1 = ti_conn.TiDBDatabaseConnector(db_name='tpch')
+        self.db_client2 = ti_conn.TiDBDatabaseConnector(db_name='tpch')
         self._frequencies = [1265, 897, 643, 1190, 521, 1688, 778, 1999, 1690, 1433, 1796, 1266, 1046, 1353]
         self.frequencies = np.array(self._frequencies) / np.array(self._frequencies).sum()
 
@@ -21,17 +21,18 @@ class Env:
         self.init_cost = np.array(self.db_client1.get_queries_cost(workload)) * self.frequencies
         self.init_cost_sum = self.init_cost.sum()
         # self.init_state = np.append(self.init_cost, np.zeros((len(candidates),), dtype=np.float))
-        self.init_state = np.append(self.frequencies, np.zeros((len(candidates),), dtype=np.float))
+        
+        self.init_state = np.append(self.frequencies, np.zeros(len(candidates)))
         self.last_state = self.init_state
         self.last_cost = self.init_cost
         self.last_cost_sum = self.init_cost_sum
 
         # utility info
-        self.index_oids = np.zeros((len(candidates),), dtype=np.int)
-        self.performance_gain = np.zeros((len(candidates),), dtype=np.float)
+        self.index_oids =  np.zeros(len(candidates))
+        self.performance_gain =  np.zeros(len(candidates))
         self.current_index_count = 0
-        self.current_index = np.zeros((len(candidates),), dtype=np.float)
-        self.current_index_storage = np.zeros((len(candidates),), dtype=np.float)
+        self.current_index = np.zeros(len(candidates))
+        self.current_index_storage = np.zeros(len(candidates))
 
         # monitor info
         self.cost_trace_overall = list()
@@ -39,7 +40,7 @@ class Env:
         self.min_cost_overall = list()
         self.min_indexes_overall = list()
         self.current_min_cost = (np.array(self.db_client1.get_queries_cost(workload)) * 0.1 * self.frequencies).sum()
-        self.current_min_index = np.zeros((len(candidates),), dtype=np.float)
+        self.current_min_index = np.zeros(len(candidates), dtype=np.cfloat)
 
         self.current_storage_sum = 0
         self.max_count = 0
@@ -63,7 +64,7 @@ class Env:
                     current_max = x
                     current_index = index
                     current_index_len = current_index_len
-                self.db_client2.execute_delete_hypo(idx_name, table_name)
+                self.db_client2.execute_delete_hypo(idx_name)
             if current_index is None:
                 break
             pre_is.append(current_index)
@@ -139,13 +140,13 @@ class Env:
         self.last_cost = self.init_cost
         self.last_cost_sum = self.init_cost_sum
         # self.index_trace_overall.append(self.currenct_index)
-        self.index_oids = np.zeros((len(self.candidates),), dtype=np.int)
-        self.performance_gain = np.zeros((len(self.candidates),), dtype=np.float)
+        self.index_oids = np.zeros(len(self.candidates))
+        self.performance_gain = np.zeros(len(self.candidates))
         self.current_index_count = 0
         self.current_min_cost = np.array(self.db_client1.get_queries_cost(self.workload)).sum()
-        self.current_min_index = np.zeros((len(self.candidates),), dtype=np.float)
-        self.current_index = np.zeros((len(self.candidates),), dtype=np.float)
-        self.current_index_storage = np.zeros((len(self.candidates),), dtype=np.float)
+        self.current_min_index = np.zeros(len(self.candidates))
+        self.current_index = np.zeros(len(self.candidates))
+        self.current_index_storage = np.zeros(len(self.candidates))
         self.db_client1.delete_indexes()
         # self.cost_trace_overall.append(self.last_cost_sum)
         if len(self.pre_create) > 0:

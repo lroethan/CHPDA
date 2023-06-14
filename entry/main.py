@@ -4,7 +4,7 @@ import sys
 sys.path.append("/home/ubuntu/CODE/CHPDA/")
 import model.model_count_constraint as dqn_fc
 import model.model_storage_constraint as dqn_fs
-import util.tidb_conn as tihypo
+import util.tidb_connector as ti_conn
 
 
 def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a):
@@ -30,15 +30,13 @@ def get_performance(selected_indexes, frequencies):
     frequencies = np.array(frequencies) / np.array(frequencies).sum()
     with open("entry/workload.pickle", "rb") as wf:
         workload = pickle.load(wf)
-    tidb_client = tihypo.TiDBHypo()
-    tidb_client.delete_indexes()
+    tidb_client = ti_conn.TiDBDatabaseConnector("tpch")
     cost1 = (np.array(tidb_client.get_queries_cost(workload)) * frequencies).sum()
     print(cost1)
     for index in selected_indexes:
         tidb_client.execute_create_hypo(index)
     cost2 = (np.array(tidb_client.get_queries_cost(workload)) * frequencies).sum()
     print(cost2)
-    tidb_client.delete_indexes()
     print((cost1 - cost2) / cost1)
 
 
