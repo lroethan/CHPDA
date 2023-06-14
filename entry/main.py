@@ -20,7 +20,7 @@ def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a):
         agent = dqn_fc.DQN(workload[:], index_candidates, "hypo", hyperparameter, is_dnn, is_ps, is_double, a)
     else:
         agent = dqn_fs.DQN(workload, index_candidates, "hypo", hyperparameter)
-    indexes, storages = agent.train(False, x)
+    indexes = agent.train(False, x)
     selected_indexes = [index_candidates[i] for i, idx in enumerate(indexes) if idx == 1.0]
     return selected_indexes
 
@@ -97,4 +97,4 @@ def entry(is_fix_count: bool, constraint):
     frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
     print(get_performance(selected_indexes, frequencies))
 
-entry(True, 2)
+entry(True, 5)

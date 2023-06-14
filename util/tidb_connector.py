@@ -101,8 +101,8 @@ class TiDBDatabaseConnector(DatabaseConnector):
                 hypo_indexes.append(hypo)
         return hypo_indexes
     
-        
-    def “_simulate_index(self, index):
+    
+    def _simulate_index(self, index):
         schema = index.split("#")
         table_name = schema[0]
         idx_cols = schema[1]

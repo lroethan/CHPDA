@@ -4,8 +4,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# experiment related
 expmodel_count_constraint.pymview/
-
+*.png
+*.pickles
+*.pickle
+.vscode/
 # C extensions
 *.so
 

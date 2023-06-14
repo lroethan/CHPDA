@@ -97,7 +97,7 @@ class Env:
         self.current_index[action] = 1.0
         oids: List[str] = list()
         oids.append(self.index_oids[action])
-        storage_cost = self.db_client1.get_storage_cost(oids)
+        storage_cost = self.db_client1.get_storage_cost(oids)[0]
         # print(storage_cost)
         self.current_storage_sum += storage_cost
         self.current_index_storage[action] = storage_cost
