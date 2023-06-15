@@ -1,5 +1,5 @@
 import numpy as np
-import util.tidb_connector as ti_conn
+import util.tidb_connector as tidb
 from typing import List
 
 
@@ -12,17 +12,17 @@ class Env:
         self.candidates = candidates
         # create real/hypothetical index
         self.mode = mode
-        self.db_client1 = ti_conn.TiDBDatabaseConnector(db_name='tpch')
-        self.db_client2 = ti_conn.TiDBDatabaseConnector(db_name='tpch')
+        self.conn = tidb.TiDBDatabaseConnector(db_name='tpch')
+        self.conn_for_checkout = tidb.TiDBDatabaseConnector(db_name='tpch')
         self._frequencies = [1265, 897, 643, 1190, 521, 1688, 778, 1999, 1690, 1433, 1796, 1266, 1046, 1353]
         self.frequencies = np.array(self._frequencies) / np.array(self._frequencies).sum()
 
-        # state info
-        self.init_cost = np.array(self.db_client1.get_queries_cost(workload)) * self.frequencies
+        # Initial state
+        self.init_cost = np.array(self.conn.get_queries_cost(workload)) * self.frequencies
         self.init_cost_sum = self.init_cost.sum()
-        # self.init_state = np.append(self.init_cost, np.zeros((len(candidates),), dtype=np.float))
+        self.init_state = np.append(self.frequencies, np.zeros(len(candidates))) # 全是 0 的 candidates 0-1 向量
         
-        self.init_state = np.append(self.frequencies, np.zeros(len(candidates)))
+        # Final state
         self.last_state = self.init_state
         self.last_cost = self.init_cost
         self.last_cost_sum = self.init_cost_sum
@@ -39,7 +39,7 @@ class Env:
         self.index_trace_overall = list()
         self.min_cost_overall = list()
         self.min_indexes_overall = list()
-        self.current_min_cost = (np.array(self.db_client1.get_queries_cost(workload)) * 0.1 * self.frequencies).sum()
+        self.current_min_cost = (np.array(self.conn.get_queries_cost(workload)) * 0.1 * self.frequencies).sum()
         self.current_min_index = np.zeros(len(candidates), dtype=np.cfloat)
 
         self.current_storage_sum = 0
@@ -52,29 +52,29 @@ class Env:
     def checkout(self):
         pre_is = []
         while True:
-            current_max = 0
+            current_max_benefit = 0
             current_index = None
             current_index_len = 0
-            start_sum = (np.array(self.db_client2.get_queries_cost(self.workload)) * self.frequencies).sum()
+            original_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
             for index in self.candidates:
-                ident, idx_name = self.db_client2.execute_create_hypo(index)
-                cu_sum = (np.array(self.db_client2.get_queries_cost(self.workload)) * self.frequencies).sum()
-                x = (start_sum - cu_sum) / start_sum
-                if x > 0.4 and current_max < x:
-                    current_max = x
+                ident, _ = self.conn_for_checkout.execute_create_hypo(index)
+                current_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
+                benefit = (original_workload_cost - current_workload_cost) / original_workload_cost
+                if benefit > 0.4 and current_max_benefit < benefit:
+                    current_max_benefit = benefit
                     current_index = index
-                    current_index_len = current_index_len
-                self.db_client2.execute_delete_hypo(ident)
+                    current_index_len = current_index_len # 这个暂时没用上
+                self.conn_for_checkout.execute_delete_hypo(ident)
             if current_index is None:
                 break
             pre_is.append(current_index)
-            self.db_client2.execute_create_hypo(current_index)
+            self.conn_for_checkout.execute_create_hypo(current_index)
         # pre_is = ['lineitem#l_orderkey,l_shipdate', 'lineitem#l_partkey,l_orderkey', 'lineitem#l_receiptdate',
         # 'lineitem#l_shipdate,l_partkey', 'lineitem#l_suppkey,l_commitdate'] pre_is = ['lineitem#l_orderkey,
         # l_suppkey', 'lineitem#l_partkey,l_suppkey', 'lineitem#l_receiptdate', 'lineitem#l_shipdate,l_discount',
         # 'lineitem#l_suppkey,l_commitdate'] pre_is.append('lineitem#l_orderkey')
         self.pre_create = pre_is
-        self.db_client2.delete_indexes()
+        self.conn_for_checkout.delete_indexes()
         self.max_count -= len(self.pre_create)
         return pre_is
 
@@ -91,20 +91,20 @@ class Env:
         # print("====================")
         # print(self.candidates)
         # print("====================")
-        self.index_oids[action] = self.db_client1.execute_create_hypo(self.candidates[action])
+        self.index_oids[action] = self.conn.execute_create_hypo(self.candidates[action])
         # print("====================111")
         
         self.current_index[action] = 1.0
         oids: List[str] = list()
         oids.append(self.index_oids[action])
-        storage_cost = self.db_client1.get_storage_cost(oids)[0]
+        storage_cost = self.conn.get_storage_cost(oids)[0]
         # print(storage_cost)
         self.current_storage_sum += storage_cost
         self.current_index_storage[action] = storage_cost
         self.current_index_count += 1
 
         # reward & performance gain
-        current_cost_info = np.array(self.db_client1.get_queries_cost(self.workload)) * self.frequencies
+        current_cost_info = np.array(self.conn.get_queries_cost(self.workload)) * self.frequencies
         current_cost_sum = current_cost_info.sum()
         # performance_gain_current = self.init_cost_sum - current_cost_sum
         # performance_gain_current = (self.last_cost_sum - current_cost_sum)/self.last_cost_sum
@@ -151,16 +151,16 @@ class Env:
         self.index_oids = np.zeros(len(self.candidates))
         self.performance_gain = np.zeros(len(self.candidates))
         self.current_index_count = 0
-        self.current_min_cost = np.array(self.db_client1.get_queries_cost(self.workload)).sum()
+        self.current_min_cost = np.array(self.conn.get_queries_cost(self.workload)).sum()
         self.current_min_index = np.zeros(len(self.candidates))
         self.current_index = np.zeros(len(self.candidates))
         self.current_index_storage = np.zeros(len(self.candidates))
-        self.db_client1.delete_indexes()
+        self.conn.delete_indexes()
         # self.cost_trace_overall.append(self.last_cost_sum)
         if len(self.pre_create) > 0:
             print("x")
             for i in self.pre_create:
-                self.db_client1.execute_create_hypo(i)
-            self.init_cost_sum = (np.array(self.db_client1.get_queries_cost(self.workload)) * self.frequencies).sum()
+                self.conn.execute_create_hypo(i)
+            self.init_cost_sum = (np.array(self.conn.get_queries_cost(self.workload)) * self.frequencies).sum()
             self.last_cost_sum = self.init_cost_sum
         return self.last_state
