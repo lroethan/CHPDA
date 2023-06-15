@@ -122,7 +122,6 @@ class DQN:
         self.replay_buffer = None
         self.num_actor_update_iteration = 0
         self.num_training = 0
-        self.index_mode = index_mode
         self.actor_loss_trace = list()
 
         # environment
@@ -265,9 +264,9 @@ class DQN:
                 _reward.append(reward)
                 _done.append(np.float(done))'''
                 if self.is_ps:
-                    self.replay_buffer.add(1.0, (state, next_state, action, reward, np.cfloat(done)))
+                    self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float64(done)))
                 else:
-                    self.replay_buffer.push((state, next_state, action, reward, np.cfloat(done)))
+                    self.replay_buffer.push((state, next_state, action, reward, np.float64(done)))
                 # if self.replay_buffer.can_update():
                 #    self.update()
                 if done:
@@ -279,7 +278,6 @@ class DQN:
                     if ep > (self.conf['EPISODES'] - 100) and t_r > current_best_reward:
                         current_best_reward = t_r
                         current_best_index = self.envx.index_trace_overall[-1]
-                        # print(current_best_index)
                     # self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float(done)))
                     if self.replay_buffer.can_update() and ep % 5 == 0:
                         self.update(ep)
@@ -287,22 +285,31 @@ class DQN:
                 state = next_state
             rewards.append(t_r)
         self.save()
+        
         plt.figure(__x)
         x = range(len(self.envx.cost_trace_overall))
         y2 = [math.log(a, 10) for a in self.envx.cost_trace_overall]
         plt.plot(x, y2, marker='x')
+        plt.xlabel("Iterations")  # X轴图注
+        plt.ylabel("Log Cost")  # Y轴图注
+        plt.title("Cost Frequency")  # 标题
         plt.savefig(self.conf['NAME'] + "freq.png", dpi=120)
         plt.clf()
         plt.close()
+
         plt.figure(__x + 1)
         x = range(len(rewards))
         y2 = rewards
         plt.plot(x, y2, marker='x')
+        plt.xlabel("Episodes")  # X轴图注
+        plt.ylabel("Rewards")  # Y轴图注
+        plt.title("Reward Frequency")  # 标题
         plt.savefig(self.conf['NAME'] + "rewardfreq.png", dpi=120)
         plt.clf()
         plt.close()
+        
         # return self.envx.index_trace_overall[-1]
         with open('{}.pickles'.format(self.conf['NAME']), 'wb') as f:
             pickle.dump(self.envx.cost_trace_overall, f, protocol=0)
-        print(current_best_reward)
+        print("Current Best Reward: ", current_best_reward)
         return current_best_index

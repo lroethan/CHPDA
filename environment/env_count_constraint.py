@@ -78,13 +78,12 @@ class Env:
         self.pre_create = pre_index_set
         self.conn_for_checkout.delete_indexes()
         self.max_count -= len(self.pre_create)
-        return pre_index_set
+    
 
     def step(self, action):
-        action = action[0]
-        # print("====================")
-        # print(action)
-        # print("====================")
+
+        action = action[0] # 这里的 action 是一个 list，里面只有一个元素，所以取第一个元素，且为整数
+        
         if self.current_index[action] != 0.0:
             # self.cost_trace_overall.append(self.last_cost_sum)
             # self.index_trace_overall.append(self.currenct_index)
@@ -137,7 +136,7 @@ class Env:
         deltac1 = self.last_cost_sum/current_cost_sum
         reward = math.log(deltac0,10)'''
         self.last_cost_sum = current_cost_sum
-        if self.current_index_count >= self.max_count:
+        if self.current_index_count >= self.max_count: # TODO
             self.cost_trace_overall.append(current_cost_sum)
             self.index_trace_overall.append(self.current_index)
             return self.last_state, reward, True

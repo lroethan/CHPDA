@@ -13,21 +13,21 @@ def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a, worklo
 
     # Load workload and candidate indexes
     print("Loading workload...")
-    with open(workload_path, "rb") as wf:
-        workload = pickle.load(wf)
+    with open(workload_path, "rb") as workload_file:
+        workload = pickle.load(workload_file)
     print("Loading candidate indexes...")
-    with open(cands_path, "rb") as cf:
-        index_candidates = pickle.load(cf)
+    with open(cands_path, "rb") as candidate_file:
+        static_candidates = pickle.load(candidate_file)
 
     # Choose the appropriate DQN agent
     if is_fix_count:
-        agent = dqn_fc.DQN(workload[:], index_candidates, "hypo", hyperparameter, is_dnn, is_ps, is_double, a)
+        agent = dqn_fc.DQN(workload[:], static_candidates, "hypo", hyperparameter, is_dnn, is_ps, is_double, a)
     else:
-        agent = dqn_fs.DQN(workload, index_candidates, "hypo", hyperparameter)
+        agent = dqn_fs.DQN(workload, static_candidates, "hypo", hyperparameter)
 
     # Train the agent and select the indexes
-    indexes = agent.train(False, x)
-    selected_indexes = [index_candidates[i] for i, idx in enumerate(indexes) if idx == 1.0]
+    one_hot_indexes = agent.train(False, x)
+    selected_indexes = [static_candidates[i] for i, flag in enumerate(one_hot_indexes) if flag == 1.0]
 
     return selected_indexes
 
@@ -102,6 +102,8 @@ def entry(is_fix_count: bool, constraint, workload_path, cands_path):
     Args:
         is_fix_count (bool): True if the constraint is the index number, False if the constraint is the index storage budget.
         constraint: The constraint value.
+        workload_path: The path to the workload file.
+        cands_path: The path to the candidate indexes file.
 
     Returns:
         selected_indexes: The selected indexes.

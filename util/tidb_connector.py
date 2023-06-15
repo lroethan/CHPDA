@@ -88,10 +88,6 @@ class TiDBDatabaseConnector(DatabaseConnector):
         # 格式：table_name.hypo_index_name
         sql = f"show create table {table_name}"
         result = self.exec_fetch(sql)
-        print("===============result================")
-        print(sql)
-        print(table_name)
-        print(result)
         hypo_indexes = []
         for line in result[1].split("\n"):
             if "HYPO INDEX" in line:
