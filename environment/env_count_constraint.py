@@ -27,14 +27,14 @@ class Env:
         self.last_cost = self.init_cost
         self.last_cost_sum = self.init_cost_sum
 
-        # utility info
+        # Utility info
         self.index_oids = ["" for _ in range(len(candidates))]
         self.performance_gain =  np.zeros(len(candidates))
         self.current_index_count = 0
         self.current_index = np.zeros(len(candidates))
         self.current_index_storage = np.zeros(len(candidates))
 
-        # monitor info
+        # Monitor info
         self.cost_trace_overall = list()
         self.index_trace_overall = list()
         self.min_cost_overall = list()
@@ -44,18 +44,19 @@ class Env:
 
         self.current_storage_sum = 0
         self.max_count = 0
-        self.a = a
+        self.alpha = a
 
         self.pre_create = []
 
     @property
     def checkout(self):
-        pre_is = []
+        pre_index_set = []
         while True:
             current_max_benefit = 0
             current_index = None
             current_index_len = 0
             original_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
+            
             for index in self.candidates:
                 ident, _ = self.conn_for_checkout.execute_create_hypo(index)
                 current_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
@@ -65,18 +66,19 @@ class Env:
                     current_index = index
                     current_index_len = current_index_len # 这个暂时没用上
                 self.conn_for_checkout.execute_delete_hypo(ident)
+            
             if current_index is None:
                 break
-            pre_is.append(current_index)
+            pre_index_set.append(current_index)
             self.conn_for_checkout.execute_create_hypo(current_index)
-        # pre_is = ['lineitem#l_orderkey,l_shipdate', 'lineitem#l_partkey,l_orderkey', 'lineitem#l_receiptdate',
-        # 'lineitem#l_shipdate,l_partkey', 'lineitem#l_suppkey,l_commitdate'] pre_is = ['lineitem#l_orderkey,
+        # pre_index_set = ['lineitem#l_orderkey,l_shipdate', 'lineitem#l_partkey,l_orderkey', 'lineitem#l_receiptdate',
+        # 'lineitem#l_shipdate,l_partkey', 'lineitem#l_suppkey,l_commitdate'] pre_index_set = ['lineitem#l_orderkey,
         # l_suppkey', 'lineitem#l_partkey,l_suppkey', 'lineitem#l_receiptdate', 'lineitem#l_shipdate,l_discount',
-        # 'lineitem#l_suppkey,l_commitdate'] pre_is.append('lineitem#l_orderkey')
-        self.pre_create = pre_is
+        # 'lineitem#l_suppkey,l_commitdate'] pre_index_set.append('lineitem#l_orderkey')
+        self.pre_create = pre_index_set
         self.conn_for_checkout.delete_indexes()
         self.max_count -= len(self.pre_create)
-        return pre_is
+        return pre_index_set
 
     def step(self, action):
         action = action[0]
@@ -125,10 +127,10 @@ class Env:
             reward = -10
         else:
             reward = math.log(0.0003, deltac0)'''
-        b = 1 - self.a
+        b = 1 - self.alpha
         # reward = deltac0
         print(deltac0)
-        reward = self.a * deltac0 * 100 + b * deltac1 * 100
+        reward = self.alpha * deltac0 * 100 + b * deltac1 * 100
         # reward = deltac0
         # reward = math.log(0.99, deltac0)
         '''deltac0 = self.init_cost_sum/current_cost_sum
