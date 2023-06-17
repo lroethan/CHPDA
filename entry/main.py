@@ -114,7 +114,8 @@ def entry(is_fix_count: bool, constraint, workload_path, cands_path):
     else:
         selected_indexes = run_dqn(is_fix_count, conf, constraint, False, False, False, 0, workload_path, cands_path)
 
-    frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
+    # frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
+    frequencies = [1] * 14
     print("===============SELECTED INDEXES=================")
     print(selected_indexes)
     print(get_performance(selected_indexes, frequencies, workload_path))

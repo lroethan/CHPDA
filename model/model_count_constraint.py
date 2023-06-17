@@ -227,10 +227,13 @@ class DQN:
         # check whether have an index will 90% improvement
         self.envx.max_count = __x
         pre_create = self.envx.checkout
+        
+        # 提前设置的索引数量已经超过约束
         if not (pre_create is None):
             print(pre_create)
             if len(pre_create) >= __x:
                 return pre_create[:__x]
+        # 是否使用优先级RB
         if self.is_ps:
             self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf['MEMORY_CAPACITY'],
                                                                  min(self.conf['LEARNING_START'],
@@ -258,11 +261,11 @@ class DQN:
                 next_state, reward, done = self.envx.step(action)
                 # print(reward)
                 t_r += reward
-                '''_state.append(state)
+                _state.append(state)
                 _next_state.append(next_state)
                 _action.append(action)
                 _reward.append(reward)
-                _done.append(np.float(done))'''
+                _done.append(np.float64(done))
                 if self.is_ps:
                     self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float64(done)))
                 else:
@@ -270,14 +273,15 @@ class DQN:
                 # if self.replay_buffer.can_update():
                 #    self.update()
                 if done:
-                    '''for i in range(len(_state)):
-                        if self.isPS:
+                    for i in range(len(_state)):
+                        if self.is_ps:
                             self.replay_buffer.add(1.0, (_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))
                         else:
-                            self.replay_buffer.push((_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))'''
+                            self.replay_buffer.push((_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))
                     if ep > (self.conf['EPISODES'] - 100) and t_r > current_best_reward:
                         current_best_reward = t_r
                         current_best_index = self.envx.index_trace_overall[-1]
+                        print(self.envx.index_trace_overall[-1])
                     # self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float(done)))
                     if self.replay_buffer.can_update() and ep % 5 == 0:
                         self.update(ep)
