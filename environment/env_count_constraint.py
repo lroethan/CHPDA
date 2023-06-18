@@ -10,7 +10,8 @@ class Env:
     def __init__(self, workload, candidates, mode, a):
         self.workload = workload
         self.candidates = candidates
-        # create real/hypothetical index
+        
+        # Create real/hypothetical index
         self.mode = mode
         self.conn = tidb.TiDBDatabaseConnector(db_name='tpch')
         self.conn_for_checkout = tidb.TiDBDatabaseConnector(db_name='tpch')
@@ -93,12 +94,12 @@ class Env:
         # print(self.candidates)
         # print("====================")
         idx_oid, _ = self.conn.execute_create_hypo(self.candidates[action])
-        # print("====================111")
+
         
         self.current_index[action] = 1.0
         oids: List[str] = list()
         oids.append(idx_oid)
-        storage_cost = self.conn.get_storage_cost(oids)[0]
+        storage_cost = self.conn.get_storage_cost(oids)[0] # TODO 
         # print(storage_cost)
         self.current_storage_sum += storage_cost
         self.current_index_storage[action] = storage_cost

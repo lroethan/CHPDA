@@ -96,8 +96,15 @@ class TiDBDatabaseConnector(DatabaseConnector):
                 hypo = f"{table_name}.{idx_name}"
                 hypo_indexes.append(hypo)
         return hypo_indexes
+
+    def _simulate_tiflash(self, table_name):
+        statement = f"alter table {table_name} set tiflash replica 1"
+        self.exec_fetch(statement)
     
-    
+    def _delete_ti_flash(self, table_name):
+        statement = f"alter table {table_name} set tiflash replica 0"
+        self.exec_fetch(statement)
+            
     def _simulate_index(self, index):
         schema = index.split("#")
         table_name = schema[0]
