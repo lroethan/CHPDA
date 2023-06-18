@@ -109,6 +109,10 @@ class TiDBDatabaseConnector(DatabaseConnector):
         schema = index.split("#")
         table_name = schema[0]
         idx_cols = schema[1]
+        if idx_cols ==  "tiflash":
+            self._simulate_tiflash(table_name)
+            return (f"{table_name}.tiflash", "tiflash")
+        
         sql_idx_cols = idx_cols.replace(',', '_') # 只是用来给 idx_name 用的
         idx_name = f"hypo_{table_name}_{sql_idx_cols}_idx" 
         
@@ -123,6 +127,10 @@ class TiDBDatabaseConnector(DatabaseConnector):
         # 按照表名.列名来删除某个虚拟索引
         table_name = ident.split(".")[0]
         idx_name = ident.split(".")[1]
+        if idx_name == "tiflash":
+            self._delete_ti_flash(table_name)
+            return
+        
         self.exec_only(f"drop index {idx_name} on {table_name}")
 
     def create_index(self, index):
