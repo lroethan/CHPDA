@@ -28,7 +28,7 @@ class Env:
         self.last_cost_sum = self.init_cost_sum
 
         # Utility info
-        self.index_oids = ["" for _ in range(len(candidates))]
+        self.index_oids = np.zeros(len(candidates))
         self.performance_gain =  np.zeros(len(candidates))
         self.current_index_count = 0
         self.current_index = np.zeros(len(candidates))
@@ -92,12 +92,12 @@ class Env:
         # print("====================")
         # print(self.candidates)
         # print("====================")
-        self.index_oids[action] = self.conn.execute_create_hypo(self.candidates[action])
+        idx_oid, _ = self.conn.execute_create_hypo(self.candidates[action])
         # print("====================111")
         
         self.current_index[action] = 1.0
         oids: List[str] = list()
-        oids.append(self.index_oids[action])
+        oids.append(idx_oid)
         storage_cost = self.conn.get_storage_cost(oids)[0]
         # print(storage_cost)
         self.current_storage_sum += storage_cost
