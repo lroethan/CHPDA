@@ -220,100 +220,225 @@ class DQN:
         print('====== model Loaded ======')
         self.actor.load_state_dict(torch.load(directory + 'dqn.pth'))
 
-    def train(self, load, __x):
-        if load:
+
+    def train(self, load_checkpoint, max_index):
+        """
+        This function trains the reinforcement learning agent.
+
+        Args:
+        load_checkpoint (bool): Flag to determine if we want to load from a saved checkpoint.
+        max_index (int): Maximum number of indexes to use for training.
+        """
+        # Load a saved checkpoint if the flag is set.
+        if load_checkpoint:
             self.load()
-        is_first = True
-        # check whether have an index will 90% improvement
-        self.envx.max_count = __x
-        pre_create = self.envx.checkout
-        
-        # 提前设置的索引数量已经超过约束
-        if not (pre_create is None):
-            print(pre_create)
-            if len(pre_create) >= __x:
-                return pre_create[:__x]
-        # 是否使用优先级RB
+
+        # Set maximum number of indexes for the environment.
+        self.envx.max_count = max_index
+
+        # Get pre-created indexes if they exist.
+        pre_created_indexes = self.envx.checkout
+
+        # If there are enough pre-created indexes, we use them and exit early.
+        if pre_created_indexes and len(pre_created_indexes) >= max_index:
+            print(f"Using pre-created indexes: {pre_created_indexes}")
+            return pre_created_indexes[:max_index]
+
+        # Decide which type of replay buffer to use based on the `is_ps` flag.
+        learning_start = min(self.conf['LEARNING_START'], 200 * self.envx.max_count)
         if self.is_ps:
-            self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf['MEMORY_CAPACITY'],
-                                                                 min(self.conf['LEARNING_START'],
-                                                                     200 * self.envx.max_count))
+            self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf['MEMORY_CAPACITY'], learning_start)
         else:
-            self.replay_buffer = Buffer.ReplayBuffer(self.conf['MEMORY_CAPACITY'],
-                                                     min(self.conf['LEARNING_START'], 200 * self.envx.max_count))
+            self.replay_buffer = Buffer.ReplayBuffer(self.conf['MEMORY_CAPACITY'], learning_start)
+
         current_best_reward = 0
         current_best_index = None
         rewards = []
-        __how_m = self.envx.max_count
-        for ep in range(self.conf['EPISODES']):
-            print("======" + str(ep) + "=====")
-            state = self.envx.reset
 
-            t_r = 0
-            _state = []
-            _next_state = []
-            _action = []
-            _reward = []
-            _done = []
+        # Start training over multiple episodes.
+        for episode in range(self.conf['EPISODES']):
+            print(f"==== Episode: {episode} ====")
+
+            state = self.envx.reset()
+            total_reward = 0
+
+            # Variables to store states, actions and rewards for the current episode.
+            states = []
+            next_states = []
+            actions = []
+            rewards = []
+            dones = []
+
+            # Run the episode.
             for t in count():
-                action = self.select_action(ep, state)
-                # print(action)
+                action = self.select_action(episode, state)
                 next_state, reward, done = self.envx.step(action)
-                # print(reward)
-                t_r += reward
-                _state.append(state)
-                _next_state.append(next_state)
-                _action.append(action)
-                _reward.append(reward)
-                _done.append(np.float64(done))
+
+                total_reward += reward
+                states.append(state)
+                next_states.append(next_state)
+                actions.append(action)
+                rewards.append(reward)
+                dones.append(np.float64(done))
+
+                # Add the experience to the replay buffer.
+                experience = (state, next_state, action, reward, np.float64(done))
                 if self.is_ps:
-                    self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float64(done)))
+                    self.replay_buffer.add(1.0, experience)
                 else:
-                    self.replay_buffer.push((state, next_state, action, reward, np.float64(done)))
-                # if self.replay_buffer.can_update():
-                #    self.update()
+                    self.replay_buffer.push(experience)
+
                 if done:
-                    for i in range(len(_state)):
+                    # Update the rewards in the replay buffer and keep track of the best reward.
+                    for i in range(len(states)):
+                        experience = (states[i], next_states[i], actions[i], rewards[i] + total_reward / max_index, dones[i])
                         if self.is_ps:
-                            self.replay_buffer.add(1.0, (_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))
+                            self.replay_buffer.add(1.0, experience)
                         else:
-                            self.replay_buffer.push((_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))
-                    if ep > (self.conf['EPISODES'] - 100) and t_r > current_best_reward:
-                        current_best_reward = t_r
+                            self.replay_buffer.push(experience)
+
+                    if episode > (self.conf['EPISODES'] - 100) and total_reward > current_best_reward:
+                        current_best_reward = total_reward
                         current_best_index = self.envx.index_trace_overall[-1]
-                        print(self.envx.index_trace_overall[-1])
-                    # self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float(done)))
-                    if self.replay_buffer.can_update() and ep % 5 == 0:
-                        self.update(ep)
+                        print(f"New best index: {current_best_index}")
+
+                    # Update the model every 5 episodes.
+                    if self.replay_buffer.can_update() and episode % 5 == 0:
+                        self.update(episode)
                     break
+                    
                 state = next_state
-            rewards.append(t_r)
+            rewards.append(total_reward)
         self.save()
-        
-        plt.figure(__x)
+
+        # Plot and save the cost trace.
+        plt.figure(max_index)
         x = range(len(self.envx.cost_trace_overall))
-        y2 = [math.log(a, 10) for a in self.envx.cost_trace_overall]
+        y2 = [math.log10(a) for a in self.envx.cost_trace_overall]
         plt.plot(x, y2, marker='x')
-        plt.xlabel("Iterations")  # X轴图注
-        plt.ylabel("Log Cost")  # Y轴图注
-        plt.title("Cost Frequency")  # 标题
+        plt.xlabel("Iterations")  
+        plt.ylabel("Log Cost")  
+        plt.title("Cost Frequency") 
         plt.savefig(self.conf['NAME'] + "freq.png", dpi=120)
         plt.clf()
         plt.close()
 
-        plt.figure(__x + 1)
+        # Plot and save the rewards trace.
+        plt.figure(max_index + 1)
         x = range(len(rewards))
-        y2 = rewards
-        plt.plot(x, y2, marker='x')
-        plt.xlabel("Episodes")  # X轴图注
-        plt.ylabel("Rewards")  # Y轴图注
-        plt.title("Reward Frequency")  # 标题
+        plt.plot(x, rewards, marker='x')
+        plt.xlabel("Episodes")
+        plt.ylabel("Rewards") 
+        plt.title("Reward Frequency")
         plt.savefig(self.conf['NAME'] + "rewardfreq.png", dpi=120)
         plt.clf()
         plt.close()
-        
-        # return self.envx.index_trace_overall[-1]
+
+        # Save the cost trace overall as a pickle file.
         with open('{}.pickles'.format(self.conf['NAME']), 'wb') as f:
             pickle.dump(self.envx.cost_trace_overall, f, protocol=0)
+
         print("Current Best Reward: ", current_best_reward)
+
         return current_best_index
+    
+    
+    # def train(self, load, __x):
+    #     if load:
+    #         self.load()
+    #     is_first = True
+    #     # check whether have an index will 90% improvement
+    #     self.envx.max_count = __x
+    #     pre_create = self.envx.checkout
+        
+    #     # 提前设置的索引数量已经超过约束
+    #     if not (pre_create is None):
+    #         print(pre_create)
+    #         if len(pre_create) >= __x:
+    #             return pre_create[:__x]
+    #     # 是否使用优先级RB
+    #     if self.is_ps:
+    #         self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf['MEMORY_CAPACITY'],
+    #                                                              min(self.conf['LEARNING_START'],
+    #                                                                  200 * self.envx.max_count))
+    #     else:
+    #         self.replay_buffer = Buffer.ReplayBuffer(self.conf['MEMORY_CAPACITY'],
+    #                                                  min(self.conf['LEARNING_START'], 200 * self.envx.max_count))
+    #     current_best_reward = 0
+    #     current_best_index = None
+    #     rewards = []
+    #     __how_m = self.envx.max_count
+    #     for ep in range(self.conf['EPISODES']):
+    #         print("======" + str(ep) + "=====")
+    #         state = self.envx.reset
+
+    #         t_r = 0
+    #         _state = []
+    #         _next_state = []
+    #         _action = []
+    #         _reward = []
+    #         _done = []
+    #         for t in count():
+    #             action = self.select_action(ep, state)
+    #             # print(action)
+    #             next_state, reward, done = self.envx.step(action)
+    #             # print(reward)
+    #             t_r += reward
+    #             _state.append(state)
+    #             _next_state.append(next_state)
+    #             _action.append(action)
+    #             _reward.append(reward)
+    #             _done.append(np.float64(done))
+    #             if self.is_ps:
+    #                 self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float64(done)))
+    #             else:
+    #                 self.replay_buffer.push((state, next_state, action, reward, np.float64(done)))
+    #             # if self.replay_buffer.can_update():
+    #             #    self.update()
+    #             if done:
+    #                 for i in range(len(_state)):
+    #                     if self.is_ps:
+    #                         self.replay_buffer.add(1.0, (_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))
+    #                     else:
+    #                         self.replay_buffer.push((_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))
+    #                 if ep > (self.conf['EPISODES'] - 100) and t_r > current_best_reward:
+    #                     current_best_reward = t_r
+    #                     current_best_index = self.envx.index_trace_overall[-1]
+    #                     print(self.envx.index_trace_overall[-1])
+    #                 # self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float(done)))
+    #                 if self.replay_buffer.can_update() and ep % 5 == 0:
+    #                     self.update(ep)
+    #                 break
+    #             state = next_state
+    #         rewards.append(t_r)
+    #     self.save()
+        
+    #     plt.figure(__x)
+    #     x = range(len(self.envx.cost_trace_overall))
+    #     y2 = [math.log(a, 10) for a in self.envx.cost_trace_overall]
+    #     plt.plot(x, y2, marker='x')
+    #     plt.xlabel("Iterations")  # X轴图注
+    #     plt.ylabel("Log Cost")  # Y轴图注
+    #     plt.title("Cost Frequency")  # 标题
+    #     plt.savefig(self.conf['NAME'] + "freq.png", dpi=120)
+    #     plt.clf()
+    #     plt.close()
+
+    #     plt.figure(__x + 1)
+    #     x = range(len(rewards))
+    #     y2 = rewards
+    #     plt.plot(x, y2, marker='x')
+    #     plt.xlabel("Episodes")  # X轴图注
+    #     plt.ylabel("Rewards")  # Y轴图注
+    #     plt.title("Reward Frequency")  # 标题
+    #     plt.savefig(self.conf['NAME'] + "rewardfreq.png", dpi=120)
+    #     plt.clf()
+    #     plt.close()
+        
+    #     # return self.envx.index_trace_overall[-1]
+    #     with open('{}.pickles'.format(self.conf['NAME']), 'wb') as f:
+    #         pickle.dump(self.envx.cost_trace_overall, f, protocol=0)
+    #     print("Current Best Reward: ", current_best_reward)
+    #     return current_best_index
+
+
