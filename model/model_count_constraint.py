@@ -238,6 +238,7 @@ class DQN:
 
         # Get pre-created indexes if they exist.
         pre_created_indexes = self.envx.checkout
+        # pre_created_indexes = []
 
         # If there are enough pre-created indexes, we use them and exit early.
         if pre_created_indexes and len(pre_created_indexes) >= max_index:
@@ -342,103 +343,4 @@ class DQN:
 
         return current_best_index
     
-    
-    # def train(self, load, __x):
-    #     if load:
-    #         self.load()
-    #     is_first = True
-    #     # check whether have an index will 90% improvement
-    #     self.envx.max_count = __x
-    #     pre_create = self.envx.checkout
-        
-    #     # 提前设置的索引数量已经超过约束
-    #     if not (pre_create is None):
-    #         print(pre_create)
-    #         if len(pre_create) >= __x:
-    #             return pre_create[:__x]
-    #     # 是否使用优先级RB
-    #     if self.is_ps:
-    #         self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf['MEMORY_CAPACITY'],
-    #                                                              min(self.conf['LEARNING_START'],
-    #                                                                  200 * self.envx.max_count))
-    #     else:
-    #         self.replay_buffer = Buffer.ReplayBuffer(self.conf['MEMORY_CAPACITY'],
-    #                                                  min(self.conf['LEARNING_START'], 200 * self.envx.max_count))
-    #     current_best_reward = 0
-    #     current_best_index = None
-    #     rewards = []
-    #     __how_m = self.envx.max_count
-    #     for ep in range(self.conf['EPISODES']):
-    #         print("======" + str(ep) + "=====")
-    #         state = self.envx.reset
-
-    #         t_r = 0
-    #         _state = []
-    #         _next_state = []
-    #         _action = []
-    #         _reward = []
-    #         _done = []
-    #         for t in count():
-    #             action = self.select_action(ep, state)
-    #             # print(action)
-    #             next_state, reward, done = self.envx.step(action)
-    #             # print(reward)
-    #             t_r += reward
-    #             _state.append(state)
-    #             _next_state.append(next_state)
-    #             _action.append(action)
-    #             _reward.append(reward)
-    #             _done.append(np.float64(done))
-    #             if self.is_ps:
-    #                 self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float64(done)))
-    #             else:
-    #                 self.replay_buffer.push((state, next_state, action, reward, np.float64(done)))
-    #             # if self.replay_buffer.can_update():
-    #             #    self.update()
-    #             if done:
-    #                 for i in range(len(_state)):
-    #                     if self.is_ps:
-    #                         self.replay_buffer.add(1.0, (_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))
-    #                     else:
-    #                         self.replay_buffer.push((_state[i], _next_state[i], _action[i], _reward[i]+t_r/__how_m, _done[i]))
-    #                 if ep > (self.conf['EPISODES'] - 100) and t_r > current_best_reward:
-    #                     current_best_reward = t_r
-    #                     current_best_index = self.envx.index_trace_overall[-1]
-    #                     print(self.envx.index_trace_overall[-1])
-    #                 # self.replay_buffer.add(1.0, (state, next_state, action, reward, np.float(done)))
-    #                 if self.replay_buffer.can_update() and ep % 5 == 0:
-    #                     self.update(ep)
-    #                 break
-    #             state = next_state
-    #         rewards.append(t_r)
-    #     self.save()
-        
-    #     plt.figure(__x)
-    #     x = range(len(self.envx.cost_trace_overall))
-    #     y2 = [math.log(a, 10) for a in self.envx.cost_trace_overall]
-    #     plt.plot(x, y2, marker='x')
-    #     plt.xlabel("Iterations")  # X轴图注
-    #     plt.ylabel("Log Cost")  # Y轴图注
-    #     plt.title("Cost Frequency")  # 标题
-    #     plt.savefig(self.conf['NAME'] + "freq.png", dpi=120)
-    #     plt.clf()
-    #     plt.close()
-
-    #     plt.figure(__x + 1)
-    #     x = range(len(rewards))
-    #     y2 = rewards
-    #     plt.plot(x, y2, marker='x')
-    #     plt.xlabel("Episodes")  # X轴图注
-    #     plt.ylabel("Rewards")  # Y轴图注
-    #     plt.title("Reward Frequency")  # 标题
-    #     plt.savefig(self.conf['NAME'] + "rewardfreq.png", dpi=120)
-    #     plt.clf()
-    #     plt.close()
-        
-    #     # return self.envx.index_trace_overall[-1]
-    #     with open('{}.pickles'.format(self.conf['NAME']), 'wb') as f:
-    #         pickle.dump(self.envx.cost_trace_overall, f, protocol=0)
-    #     print("Current Best Reward: ", current_best_reward)
-    #     return current_best_index
-
 

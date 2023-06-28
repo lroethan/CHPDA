@@ -77,7 +77,7 @@ class Env:
         # l_suppkey', 'lineitem#l_partkey,l_suppkey', 'lineitem#l_receiptdate', 'lineitem#l_shipdate,l_discount',
         # 'lineitem#l_suppkey,l_commitdate'] pre_index_set.append('lineitem#l_orderkey')
         self.pre_create = pre_index_set
-        self.conn_for_checkout.delete_indexes()
+        # self.conn_for_checkout.delete_indexes()
         self.max_count -= len(self.pre_create)
     
 

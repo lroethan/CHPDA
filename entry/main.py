@@ -101,7 +101,7 @@ test_count_conf = {
     "U_ITERATION": 5,
     "BATCH_SIZE": 64,
     "GAMMA": 0.95,
-    "EPISODES": 200,
+    "EPISODES": 50,
     "LEARNING_START": 1000,
     "MEMORY_CAPACITY": 20000,
 }
@@ -148,6 +148,7 @@ def entry(is_fix_count: bool, constraint, workload_path, cands_path):
 if __name__ == '__main__':
     
     WORKLOAD_PATH = "entry/workload.pickle"
-    CANDS_PATH = "entry/cands2.pickle"
+    CANDS_PATH = "entry/cands.pickle"
+    # CANDS_PATH = "entry/cands2.pickle"
     
-    entry(True, 4, WORKLOAD_PATH, CANDS_PATH)
+    entry(True, 10, WORKLOAD_PATH, CANDS_PATH)

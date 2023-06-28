@@ -98,12 +98,12 @@ class TiDBDatabaseConnector(DatabaseConnector):
         return hypo_indexes
 
     def _simulate_tiflash(self, table_name):
-        statement = f"alter table {table_name} set tiflash replica 1"
-        self.exec_fetch(statement)
+        statement = f"alter table {table_name} set hypo tiflash replica 1"
+        self.exec_only(statement)
     
     def _delete_ti_flash(self, table_name):
-        statement = f"alter table {table_name} set tiflash replica 0"
-        self.exec_fetch(statement)
+        statement = f"alter table {table_name} set hypo tiflash replica 0"
+        self.exec_only(statement)
             
     def _simulate_index(self, index):
         schema = index.split("#")
@@ -131,7 +131,7 @@ class TiDBDatabaseConnector(DatabaseConnector):
             self._delete_ti_flash(table_name)
             return
         
-        self.exec_only(f"drop index {idx_name} on {table_name}")
+        self.exec_only(f"drop hypo index {idx_name} on {table_name}")
 
     def create_index(self, index):
         raise Exception("use what-if API")
