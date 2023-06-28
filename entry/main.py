@@ -14,7 +14,31 @@ def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a, worklo
     # Load workload and candidate indexes
     print("Loading workload...")
     with open(workload_path, "rb") as workload_file:
+#         workload2 = """select
+#   l_returnflag,
+#   l_linestatus,
+#   sum(l_quantity) as sum_qty,
+#   sum(l_extendedprice) as sum_base_price,
+#   sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
+#   sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,
+#   avg(l_quantity) as avg_qty,
+#   avg(l_extendedprice) as avg_price,
+#   avg(l_discount) as avg_disc,
+#   count(*) as count_order
+# from
+#   lineitem
+# where
+#   l_shipdate <= '1998-09-02'
+# group by
+#   l_returnflag,
+#   l_linestatus
+# order by
+#   l_returnflag,
+#   l_linestatus;"""
+#         workload = [workload2]
         workload = pickle.load(workload_file)
+        
+        print(workload)
     print("Loading candidate indexes...")
     with open(cands_path, "rb") as candidate_file:
         static_candidates = pickle.load(candidate_file)
@@ -77,7 +101,7 @@ test_count_conf = {
     "U_ITERATION": 5,
     "BATCH_SIZE": 64,
     "GAMMA": 0.95,
-    "EPISODES": 50,
+    "EPISODES": 200,
     "LEARNING_START": 1000,
     "MEMORY_CAPACITY": 20000,
 }
@@ -124,6 +148,6 @@ def entry(is_fix_count: bool, constraint, workload_path, cands_path):
 if __name__ == '__main__':
     
     WORKLOAD_PATH = "entry/workload.pickle"
-    CANDS_PATH = "entry/cands.pickle"
+    CANDS_PATH = "entry/cands2.pickle"
     
-    entry(True, 3, WORKLOAD_PATH, CANDS_PATH)
+    entry(True, 4, WORKLOAD_PATH, CANDS_PATH)
