@@ -1,14 +1,15 @@
-from itertools import count
-import matplotlib.pyplot as plt
 import math
-import numpy as np
 import os
 import pickle
-from tensorboardX import SummaryWriter
+from itertools import count
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from tensorboardX import SummaryWriter
 
 import environment.env_count_constraint as env
 import environment.env_storage_constraint as env2
@@ -16,12 +17,12 @@ from model import prioritized_replay_buffer as BufferX
 from model import replay_buffer as Buffer
 
 if torch.cuda.is_available():
-    device = 'cuda'
+    device = "cuda"
 else:
-    device = 'cpu'
+    device = "cpu"
 
 script_name = os.path.basename(__file__)
-directory = './exp' + script_name + "mview" + '/'
+directory = "./exp" + script_name + "mview" + "/"
 
 
 class NN(nn.Module):
@@ -103,8 +104,8 @@ class DQN:
         self.action_dim = len(action)
         self.is_ps = is_ps
         self.is_double = is_double
-        
-         # Initialize actor network
+
+        # Initialize actor network
         if is_dnn:
             self.actor = DNN(self.state_dim, self.action_dim).to(device)
             self.actor_target = DNN(self.state_dim, self.action_dim).to(device)
@@ -113,10 +114,11 @@ class DQN:
             self.actor = NN(self.state_dim, self.action_dim).to(device)
             self.actor_target = NN(self.state_dim, self.action_dim).to(device)
             self.actor_target.load_state_dict(self.actor.state_dict())
-            
+
         # Initialize actor optimizer
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), conf[
-            'LR'])  # optim.SGD(self.actor.parameters(), lr=self.conf['LR'], momentum=0.9)
+        self.actor_optimizer = optim.Adam(
+            self.actor.parameters(), conf["LR"]
+        )  # optim.SGD(self.actor.parameters(), lr=self.conf['LR'], momentum=0.9)
 
         # Initialize replay buffer and monitoring variables
         self.replay_buffer = None
@@ -139,7 +141,7 @@ class DQN:
             action = [action]
             return action
         state = torch.unsqueeze(torch.FloatTensor(state), 0)
-        if np.random.randn() <= self.conf['EPISILO']:  # *(1 - math.pow(0.5, t/50)):  #*(t/MAX_STEP):  # greedy policy
+        if np.random.randn() <= self.conf["EPISILO"]:  # *(1 - math.pow(0.5, t/50)):  #*(t/MAX_STEP):  # greedy policy
             action_value = self.actor.forward(state)
             action = torch.max(action_value, 1)[1].data.numpy()
             return action
@@ -149,7 +151,7 @@ class DQN:
             return action
 
     def _sample(self):
-        batch, idx = self.replay_buffer.sample(self.conf['BATCH_SIZE'])
+        batch, idx = self.replay_buffer.sample(self.conf["BATCH_SIZE"])
         # state, next_state, action, reward, np.float(done))
         # batch = self.replay_memory.sample(self.batch_size)
         x, y, u, r, d = [], [], [], [], []
@@ -163,21 +165,21 @@ class DQN:
 
     def adjust_learning_rate(self, optimizer, epoch):
         """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-        lr = self.conf['LR'] * (0.1 ** (epoch // 30))
+        lr = self.conf["LR"] * (0.1 ** (epoch // 30))
         for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
+            param_group["lr"] = lr
 
     def update(self, ep):
-        if self.learn_step_counter % self.conf['Q_ITERATION'] == 0:
+        if self.learn_step_counter % self.conf["Q_ITERATION"] == 0:
             self.actor_target.load_state_dict(self.actor.state_dict())
         self.learn_step_counter += 1
         # self.adjust_learning_rate(self.actor_optimizer, ep)
-        for it in range(self.conf['U_ITERATION']):
+        for it in range(self.conf["U_ITERATION"]):
             idxs = None
             if self.is_ps:
                 idxs, x, y, u, r, d = self._sample()
             else:
-                x, y, u, r, d = self.replay_buffer.sample(self.conf['BATCH_SIZE'])
+                x, y, u, r, d = self.replay_buffer.sample(self.conf["BATCH_SIZE"])
             state = torch.FloatTensor(x).to(device)
             action = torch.LongTensor(u).to(device)
             next_state = torch.FloatTensor(y).to(device)
@@ -193,14 +195,14 @@ class DQN:
                 q_next = self.actor_target(next_state)
                 qx = q_next.gather(1, nx)
                 # q_target = reward + (1 - done) * self.conf['GAMMA'] * qx.max(1)[0].view(self.conf['BATCH_SIZE'], 1)
-                q_target = reward + (1 - done) * self.conf['GAMMA'] * qx
+                q_target = reward + (1 - done) * self.conf["GAMMA"] * qx
             else:
                 q_next = self.actor_target(next_state).detach()
-                q_target = reward + (1 - done) * self.conf['GAMMA'] * q_next.max(1)[0].view(self.conf['BATCH_SIZE'], 1)
+                q_target = reward + (1 - done) * self.conf["GAMMA"] * q_next.max(1)[0].view(self.conf["BATCH_SIZE"], 1)
             actor_loss = F.mse_loss(q_eval, q_target)
             error = torch.abs(q_eval - q_target).data.numpy()
             if self.is_ps:
-                for i in range(self.conf['BATCH_SIZE']):
+                for i in range(self.conf["BATCH_SIZE"]):
                     idx = idxs[i]
                     self.replay_buffer.update(idx, error[i][0])
 
@@ -213,13 +215,12 @@ class DQN:
             # h = item[1].register_hook(lambda grad: print(grad))
 
     def save(self):
-        torch.save(self.actor_target.state_dict(), directory + 'dqn.pth')
-        print('====== model Saved ======')
+        torch.save(self.actor_target.state_dict(), directory + "dqn.pth")
+        print("====== model Saved ======")
 
     def load(self):
-        print('====== model Loaded ======')
-        self.actor.load_state_dict(torch.load(directory + 'dqn.pth'))
-
+        print("====== model Loaded ======")
+        self.actor.load_state_dict(torch.load(directory + "dqn.pth"))
 
     def train(self, load_checkpoint, max_index):
         """
@@ -246,18 +247,18 @@ class DQN:
             return pre_created_indexes[:max_index]
 
         # Decide which type of replay buffer to use based on the `is_ps` flag.
-        learning_start = min(self.conf['LEARNING_START'], 200 * self.envx.max_count)
+        learning_start = min(self.conf["LEARNING_START"], 200 * self.envx.max_count)
         if self.is_ps:
-            self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf['MEMORY_CAPACITY'], learning_start)
+            self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf["MEMORY_CAPACITY"], learning_start)
         else:
-            self.replay_buffer = Buffer.ReplayBuffer(self.conf['MEMORY_CAPACITY'], learning_start)
+            self.replay_buffer = Buffer.ReplayBuffer(self.conf["MEMORY_CAPACITY"], learning_start)
 
         current_best_reward = 0
         current_best_index = None
         rewards = []
 
         # Start training over multiple episodes.
-        for episode in range(self.conf['EPISODES']):
+        for episode in range(self.conf["EPISODES"]):
             print(f"==== Episode: {episode} ====")
 
             state = self.envx.reset()
@@ -292,13 +293,19 @@ class DQN:
                 if done:
                     # Update the rewards in the replay buffer and keep track of the best reward.
                     for i in range(len(states)):
-                        experience = (states[i], next_states[i], actions[i], rewards[i] + total_reward / max_index, dones[i])
+                        experience = (
+                            states[i],
+                            next_states[i],
+                            actions[i],
+                            rewards[i] + total_reward / max_index,
+                            dones[i],
+                        )
                         if self.is_ps:
                             self.replay_buffer.add(1.0, experience)
                         else:
                             self.replay_buffer.push(experience)
 
-                    if episode > (self.conf['EPISODES'] - 100) and total_reward > current_best_reward:
+                    if episode > (self.conf["EPISODES"] - 100) and total_reward > current_best_reward:
                         current_best_reward = total_reward
                         current_best_index = self.envx.index_trace_overall[-1]
                         print(f"New best index: {current_best_index}")
@@ -307,7 +314,7 @@ class DQN:
                     if self.replay_buffer.can_update() and episode % 5 == 0:
                         self.update(episode)
                     break
-                    
+
                 state = next_state
             rewards.append(total_reward)
         self.save()
@@ -316,31 +323,29 @@ class DQN:
         plt.figure(max_index)
         x = range(len(self.envx.cost_trace_overall))
         y2 = [math.log10(a) for a in self.envx.cost_trace_overall]
-        plt.plot(x, y2, marker='x')
-        plt.xlabel("Iterations")  
-        plt.ylabel("Log Cost")  
-        plt.title("Cost Frequency") 
-        plt.savefig(self.conf['NAME'] + "freq.png", dpi=120)
+        plt.plot(x, y2, marker="x")
+        plt.xlabel("Iterations")
+        plt.ylabel("Log Cost")
+        plt.title("Cost Frequency")
+        plt.savefig(self.conf["NAME"] + "freq.png", dpi=120)
         plt.clf()
         plt.close()
 
         # Plot and save the rewards trace.
         plt.figure(max_index + 1)
         x = range(len(rewards))
-        plt.plot(x, rewards, marker='x')
+        plt.plot(x, rewards, marker="x")
         plt.xlabel("Episodes")
-        plt.ylabel("Rewards") 
+        plt.ylabel("Rewards")
         plt.title("Reward Frequency")
-        plt.savefig(self.conf['NAME'] + "rewardfreq.png", dpi=120)
+        plt.savefig(self.conf["NAME"] + "rewardfreq.png", dpi=120)
         plt.clf()
         plt.close()
 
         # Save the cost trace overall as a pickle file.
-        with open('{}.pickles'.format(self.conf['NAME']), 'wb') as f:
+        with open("{}.pickles".format(self.conf["NAME"]), "wb") as f:
             pickle.dump(self.envx.cost_trace_overall, f, protocol=0)
 
         print("Current Best Reward: ", current_best_reward)
 
         return current_best_index
-    
-

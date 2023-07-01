@@ -1,23 +1,25 @@
 import os
+import time
 from configparser import ConfigParser
 from typing import List
-import psycopg2 as pg
+
 import pandas as pd
-import time
+import psycopg2 as pg
 
 
 class PGHypo:
     def __init__(self):
         config_raw = ConfigParser()
-        config_raw.read(os.path.abspath('..') + '/configure.ini')
+        config_raw.read(os.path.abspath("..") + "/configure.ini")
         defaults = config_raw.defaults()
-        self.host = defaults.get('pg_ip')
-        self.port = defaults.get('pg_port')
-        self.user = defaults.get('pg_user')
-        self.password = defaults.get('pg_password')
-        self.database = defaults.get('pg_database')
-        self.conn = pg.connect(database=self.database, user=self.user, password=self.password, host=self.host,
-                                     port=self.port)
+        self.host = defaults.get("pg_ip")
+        self.port = defaults.get("pg_port")
+        self.user = defaults.get("pg_user")
+        self.password = defaults.get("pg_password")
+        self.database = defaults.get("pg_database")
+        self.conn = pg.connect(
+            database=self.database, user=self.user, password=self.password, host=self.host, port=self.port
+        )
 
     def close(self):
         self.conn.close()
@@ -52,7 +54,7 @@ class PGHypo:
             rows = cur.fetchall()
             df = pd.DataFrame(rows)
             cost_info = str(df[0][0])
-            cost_list.append(float(cost_info[cost_info.index("..") + 2:cost_info.index(" rows=")]))
+            cost_list.append(float(cost_info[cost_info.index("..") + 2 : cost_info.index(" rows=")]))
         return cost_list
 
     def get_storage_cost(self, oid_list):
@@ -61,7 +63,7 @@ class PGHypo:
         for i, oid in enumerate(oid_list):
             if oid == 0:
                 continue
-            sql = "select * from hypopg_relation_size(" + str(oid) +");"
+            sql = "select * from hypopg_relation_size(" + str(oid) + ");"
             cur.execute(sql)
             rows = cur.fetchall()
             df = pd.DataFrame(rows)
@@ -78,7 +80,7 @@ class PGHypo:
 
     def delete_indexes(self):
         # 删除所有虚拟索引
-        sql = 'select * from hypopg_reset();'
+        sql = "select * from hypopg_reset();"
         self.execute_sql(sql)
 
     def get_sel(self, table_name, condition):
@@ -96,7 +98,7 @@ class PGHypo:
         rows = cur.fetchall()[0][0]
         #     print(rows)
         select_rows = int(rows.split("rows=")[-1].split(" ")[0])
-        return select_rows/total_rows
+        return select_rows / total_rows
 
     def get_rel_cost(self, query_list):
         print("real")
@@ -107,14 +109,14 @@ class PGHypo:
             query = "explain analyse" + query
             cur.execute(query)
             _end = time.time()
-            cost_list.append(_end-_start)
+            cost_list.append(_end - _start)
         return cost_list
 
     def create_indexes(self, indexes):
         i = 0
         for index in indexes:
             schema = index.split("#")
-            sql = 'CREATE INDEX START_X_IDx' + str(i) + ' ON ' + schema[0] + "(" + schema[1] + ');'
+            sql = "CREATE INDEX START_X_IDx" + str(i) + " ON " + schema[0] + "(" + schema[1] + ");"
             print(sql)
             self.execute_sql(sql)
             i += 1
@@ -130,12 +132,12 @@ class PGHypo:
             indexes.append(row[0])
         print(indexes)
         for index in indexes:
-            sql = 'drop index ' + index + ';'
+            sql = "drop index " + index + ";"
             print(sql)
             self.execute_sql(sql)
 
     def get_tables(self, schema):
-        tables_sql = 'select tablename from pg_tables where schemaname=\''+schema+'\';'
+        tables_sql = "select tablename from pg_tables where schemaname='" + schema + "';"
         cur = self.conn.cursor()
         cur.execute(tables_sql)
         rows = cur.fetchall()
@@ -145,7 +147,13 @@ class PGHypo:
         return table_names
 
     def get_attributes(self, table_name, schema):
-        attrs_sql = 'select column_name, data_type from information_schema.columns where table_schema=\''+schema+'\' and table_name=\''+table_name+'\''
+        attrs_sql = (
+            "select column_name, data_type from information_schema.columns where table_schema='"
+            + schema
+            + "' and table_name='"
+            + table_name
+            + "'"
+        )
         cur = self.conn.cursor()
         cur.execute(attrs_sql)
         rows = cur.fetchall()

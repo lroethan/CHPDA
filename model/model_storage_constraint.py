@@ -1,26 +1,24 @@
+import math
+import os
+import random
+import sys
+import time
+from itertools import count
+
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
-from itertools import count
-import torch.optim as optim
-import os
-import sys
 import torch.nn.functional as F
-
-import environment.env_storage_constraint as env
+import torch.optim as optim
 from tensorboardX import SummaryWriter
 
-import random
-import matplotlib.pyplot as plt
-import math
-import time
-
+import environment.env_storage_constraint as env
 from model import prioritized_replay_buffer as BufferX
 
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = "cuda" if torch.cuda.is_available() else "cpu"
 script_name = os.path.basename(__file__)
-directory = './exp' + script_name + "mview" + '/'
+directory = "./exp" + script_name + "mview" + "/"
 
 
 class NN(nn.Module):
@@ -64,9 +62,11 @@ class DQN:
         self.actor = NN(self.state_dim, self.action_dim).to(device)
         self.actor_target = NN(self.state_dim, self.action_dim).to(device)
         self.actor_target.load_state_dict(self.actor.state_dict())
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), conf['LR'])
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), conf["LR"])
 
-        self.replay_buffer = BufferX.PrioritizedReplayMemory(self.conf['MEMORY_CAPACITY'], self.conf['LEARNING_START']) # ReplayBuffer(conf['MEMORY_CAPACITY'], conf['LEARNING_START'])  #   #
+        self.replay_buffer = BufferX.PrioritizedReplayMemory(
+            self.conf["MEMORY_CAPACITY"], self.conf["LEARNING_START"]
+        )  # ReplayBuffer(conf['MEMORY_CAPACITY'], conf['LEARNING_START'])  #   #
 
         # some monitor information
         self.num_actor_update_iteration = 0
@@ -88,7 +88,7 @@ class DQN:
             action = [action]
             return action
         state = torch.unsqueeze(torch.FloatTensor(state), 0)
-        if np.random.randn() <= self.conf['EPISILO']:  #*(t/MAX_STEP):  # greedy policy
+        if np.random.randn() <= self.conf["EPISILO"]:  # *(t/MAX_STEP):  # greedy policy
             action_value = self.actor.forward(state)
             action = torch.max(action_value, 1)[1].data.numpy()
             return action
@@ -98,7 +98,7 @@ class DQN:
             return action
 
     def _sample(self):
-        batch, idx = self.replay_buffer.sample(self.conf['BATCH_SIZE'])
+        batch, idx = self.replay_buffer.sample(self.conf["BATCH_SIZE"])
         # state, next_state, action, reward, np.float(done))
         # batch = self.replay_memory.sample(self.batch_size)
         x, y, u, r, d = [], [], [], [], []
@@ -110,13 +110,12 @@ class DQN:
             d.append(np.array(_b[4], copy=False))
         return idx, np.array(x), np.array(y), np.array(u), np.array(r).reshape(-1, 1), np.array(d).reshape(-1, 1)
 
-
     def update(self):
-        if self.learn_step_counter % self.conf['Q_ITERATION'] == 0:
+        if self.learn_step_counter % self.conf["Q_ITERATION"] == 0:
             self.actor_target.load_state_dict(self.actor.state_dict())
         self.learn_step_counter += 1
-        for it in range(self.conf['U_ITERATION']):
-            idxs, x, y, u, r, d = self._sample()  #_sample()
+        for it in range(self.conf["U_ITERATION"]):
+            idxs, x, y, u, r, d = self._sample()  # _sample()
             state = torch.FloatTensor(x).to(device)
             action = torch.LongTensor(u).to(device)
             next_state = torch.FloatTensor(y).to(device)
@@ -125,10 +124,10 @@ class DQN:
 
             q_eval = self.actor(state).gather(1, action)
             q_next = self.actor_target(next_state).detach()
-            q_target = reward + (1-done)*self.conf['GAMMA'] * q_next.max(1)[0].view(self.conf['BATCH_SIZE'], 1)
+            q_target = reward + (1 - done) * self.conf["GAMMA"] * q_next.max(1)[0].view(self.conf["BATCH_SIZE"], 1)
             actor_loss = F.mse_loss(q_eval, q_target)
             error = torch.abs(q_eval - q_target).data.numpy()
-            for i in range(self.conf['BATCH_SIZE']):
+            for i in range(self.conf["BATCH_SIZE"]):
                 idx = idxs[i]
                 self.replay_buffer.update(idx, error[i][0])
 
@@ -137,27 +136,26 @@ class DQN:
             self.actor_optimizer.step()
             self.actor_loss_trace.append(actor_loss)
             # for item in self.actor.named_parameters():
-                # h = item[1].register_hook(lambda grad: print(grad))
+            # h = item[1].register_hook(lambda grad: print(grad))
 
     def save(self):
-        print('====== model Saved ======')
-        torch.save(self.actor_target.state_dict(), directory + 'dqn.pth')
-
+        print("====== model Saved ======")
+        torch.save(self.actor_target.state_dict(), directory + "dqn.pth")
 
     def load(self):
-        print('====== model Loaded ======')
-        self.actor.load_state_dict(torch.load(directory + 'dqn.pth'))
+        print("====== model Loaded ======")
+        self.actor.load_state_dict(torch.load(directory + "dqn.pth"))
 
     def train(self, load, __x):
         if load:
             self.load1()
         is_first = True
-        self.envx.max_size = __x*134815744
+        self.envx.max_size = __x * 134815744
         current_best_reward = 0
         current_best_index = None
         current_best_index_s = 0
-        for ep in range(self.conf['EPISODES']):
-            print("======"+str(ep)+"=====")
+        for ep in range(self.conf["EPISODES"]):
+            print("======" + str(ep) + "=====")
             state = self.envx.reset()
             rewards = []
             t_r = 0
@@ -185,7 +183,10 @@ class DQN:
                         current_best_reward = last_reward
                         current_best_index = self.envx.index_trace_overall[-1]
                         current_best_index_s = self.envx.storage_trace_overall[-1]
-                    self.replay_buffer.add(1.0, (last_input_state.tolist(), last_next_state.tolist(), last_action, last_reward, np.float(done)))
+                    self.replay_buffer.add(
+                        1.0,
+                        (last_input_state.tolist(), last_next_state.tolist(), last_action, last_reward, np.float(done)),
+                    )
                     if self.replay_buffer.can_update():
                         if is_first:
                             print("first:", ep)
@@ -196,10 +197,8 @@ class DQN:
         plt.figure(__x)
         x = range(len(self.envx.cost_trace_overall))
         y2 = [math.log(a, 10) for a in self.envx.cost_trace_overall]
-        plt.plot(x, y2, marker='x')
-        plt.savefig(self.conf['NAME'] + "freq.png", dpi=120)
+        plt.plot(x, y2, marker="x")
+        plt.savefig(self.conf["NAME"] + "freq.png", dpi=120)
         plt.clf()
         plt.close()
         return current_best_index, current_best_index_s
-
-

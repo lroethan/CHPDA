@@ -2,8 +2,9 @@
 """
 Prioritized Replay Memory
 """
-import random
 import pickle
+import random
+
 import numpy as np
 
 
@@ -12,7 +13,7 @@ class SumTree(object):
 
     def __init__(self, capacity):
         self.capacity = capacity
-        self.tree = np.zeros(2*capacity - 1)
+        self.tree = np.zeros(2 * capacity - 1)
         self.data = np.zeros(capacity, dtype=object)
         self.num_entries = 0
 
@@ -32,7 +33,7 @@ class SumTree(object):
         if s <= self.tree[left]:
             return self._retrieve(left, s)
         else:
-            return self._retrieve(right, s-self.tree[left])
+            return self._retrieve(right, s - self.tree[left])
 
     def total(self):
         return self.tree[0]
@@ -62,7 +63,6 @@ class SumTree(object):
 
 
 class PrioritizedReplayMemory(object):
-
     def __init__(self, capacity, LEARNING_START):
         self.tree = SumTree(capacity)
         self.capacity = capacity
@@ -92,7 +92,7 @@ class PrioritizedReplayMemory(object):
         segment = self.tree.total() / n
         priorities = []
 
-        self.beta = np.min([1., self.beta + self.beta_increment_per_sampling])
+        self.beta = np.min([1.0, self.beta + self.beta_increment_per_sampling])
 
         for i in range(n):
             a = segment * i
@@ -114,11 +114,11 @@ class PrioritizedReplayMemory(object):
         self.tree.update(idx, p)
 
     def save(self, path):
-        f = open(path, 'wb')
+        f = open(path, "wb")
         pickle.dump({"tree": self.tree}, f)
         f.close()
 
     def load_memory(self, path):
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             _memory = pickle.load(f)
-        self.tree = _memory['tree']
+        self.tree = _memory["tree"]

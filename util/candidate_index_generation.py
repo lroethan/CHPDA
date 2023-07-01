@@ -1,9 +1,10 @@
 import pickle
+
 import psqlparse
+
 from preprocess import dataset as ds
 from util import encoding as en
 from util import index_parser as pi
-
 
 enc = en.encoding_schema()
 # path to your tpch_directory/dbgen
@@ -12,7 +13,7 @@ w_size = 14
 wd_generator = ds.TPCH(work_dir, w_size)
 workload = wd_generator.gen_workloads()
 
-parser = pi.Parser(enc['attr'])
+parser = pi.Parser(enc["attr"])
 
 
 def gen_i(__x):
@@ -24,13 +25,13 @@ def gen_i(__x):
         parser.parse_stmt(b[0])
         parser.gain_candidates()
         if i == 8:
-            added_i.add('lineitem#l_shipmode')
-            added_i.add('lineitem#l_orderkey,l_shipmode')
-            added_i.add('lineitem#l_shipmode,l_orderkey')
+            added_i.add("lineitem#l_shipmode")
+            added_i.add("lineitem#l_orderkey,l_shipmode")
+            added_i.add("lineitem#l_shipmode,l_orderkey")
     f_i = parser.index_candidates | added_i
     f_i = list(f_i)
     f_i.sort()
-    with open('cands'+str(__x+1)+'.pickle', 'wb') as df:
+    with open("cands" + str(__x + 1) + ".pickle", "wb") as df:
         pickle.dump(list(f_i), df, protocol=0)
 
 

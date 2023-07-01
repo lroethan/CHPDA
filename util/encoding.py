@@ -25,10 +25,10 @@ def encoding_schema(from_disk=False):
         pass
     else:
         pg_client = pg.PGHypo()
-        tables = pg_client.get_tables('public')
+        tables = pg_client.get_tables("public")
         tables.sort()
         for i, table in enumerate(tables):
-            attributes = pg_client.get_attributes(table, 'public')
+            attributes = pg_client.get_attributes(table, "public")
             tables_dict[table] = len(attributes)
             table_order[table] = i
             _small_attr = dict()
@@ -43,10 +43,10 @@ def encoding_schema(from_disk=False):
             attrix2name[table] = _ix2name
         pg_client.close()
     encoding = dict()
-    encoding['tb_list'] = tables
-    encoding['tb_order'] = table_order
+    encoding["tb_list"] = tables
+    encoding["tb_order"] = table_order
     encoding["tbl"] = tables_dict
     encoding["attr"] = attributes_dict
-    encoding['ix2name'] = attrix2name
+    encoding["ix2name"] = attrix2name
     encoding["op"] = operation_dict
     return encoding

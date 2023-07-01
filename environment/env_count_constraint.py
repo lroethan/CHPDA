@@ -1,7 +1,8 @@
-import numpy as np
-import util.tidb_connector as tidb
 from typing import List
 
+import numpy as np
+
+import util.tidb_connector as tidb
 
 max_index_size = 4
 
@@ -10,19 +11,19 @@ class Env:
     def __init__(self, workload, candidates, mode, a):
         self.workload = workload
         self.candidates = candidates
-        
+
         # Create real/hypothetical index
         self.mode = mode
-        self.conn = tidb.TiDBDatabaseConnector(db_name='tpch')
-        self.conn_for_checkout = tidb.TiDBDatabaseConnector(db_name='tpch')
+        self.conn = tidb.TiDBDatabaseConnector(db_name="tpch")
+        self.conn_for_checkout = tidb.TiDBDatabaseConnector(db_name="tpch")
         self._frequencies = [1265, 897, 643, 1190, 521, 1688, 778, 1999, 1690, 1433, 1796, 1266, 1046, 1353]
         self.frequencies = np.array(self._frequencies) / np.array(self._frequencies).sum()
 
         # Initial state
         self.init_cost = np.array(self.conn.get_queries_cost(workload)) * self.frequencies
         self.init_cost_sum = self.init_cost.sum()
-        self.init_state = np.append(self.frequencies, np.zeros(len(candidates))) # 全是 0 的 candidates 0-1 向量
-        
+        self.init_state = np.append(self.frequencies, np.zeros(len(candidates)))  # 全是 0 的 candidates 0-1 向量
+
         # Final state
         self.last_state = self.init_state
         self.last_cost = self.init_cost
@@ -30,7 +31,7 @@ class Env:
 
         # Utility info
         self.index_oids = np.zeros(len(candidates))
-        self.performance_gain =  np.zeros(len(candidates))
+        self.performance_gain = np.zeros(len(candidates))
         self.current_index_count = 0
         self.current_index = np.zeros(len(candidates))
         self.current_index_storage = np.zeros(len(candidates))
@@ -56,18 +57,22 @@ class Env:
             current_max_benefit = 0
             current_index = None
             current_index_len = 0
-            original_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
-            
+            original_workload_cost = (
+                np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies
+            ).sum()
+
             for index in self.candidates:
                 ident, _ = self.conn_for_checkout.execute_create_hypo(index)
-                current_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
+                current_workload_cost = (
+                    np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies
+                ).sum()
                 benefit = (original_workload_cost - current_workload_cost) / original_workload_cost
                 if benefit > 0.4 and current_max_benefit < benefit:
                     current_max_benefit = benefit
                     current_index = index
-                    current_index_len = current_index_len # 这个暂时没用上
+                    current_index_len = current_index_len  # 这个暂时没用上
                 self.conn_for_checkout.execute_delete_hypo(ident)
-            
+
             if current_index is None:
                 break
             pre_index_set.append(current_index)
@@ -79,12 +84,10 @@ class Env:
         self.pre_create = pre_index_set
         # self.conn_for_checkout.delete_indexes()
         self.max_count -= len(self.pre_create)
-    
 
     def step(self, action):
+        action = action[0]  # 这里的 action 是一个 list，里面只有一个元素，所以取第一个元素，且为整数
 
-        action = action[0] # 这里的 action 是一个 list，里面只有一个元素，所以取第一个元素，且为整数
-        
         if self.current_index[action] != 0.0:
             # self.cost_trace_overall.append(self.last_cost_sum)
             # self.index_trace_overall.append(self.currenct_index)
@@ -95,11 +98,10 @@ class Env:
         # print("====================")
         idx_oid, _ = self.conn.execute_create_hypo(self.candidates[action])
 
-        
         self.current_index[action] = 1.0
         oids: List[str] = list()
         oids.append(idx_oid)
-        storage_cost = self.conn.get_storage_cost(oids)[0] # TODO 
+        storage_cost = self.conn.get_storage_cost(oids)[0]  # TODO
         # print(storage_cost)
         self.current_storage_sum += storage_cost
         self.current_index_storage[action] = storage_cost
@@ -122,22 +124,22 @@ class Env:
         deltac0 = (self.init_cost_sum - current_cost_sum) / self.init_cost_sum
         deltac1 = (self.last_cost_sum - current_cost_sum) / self.init_cost_sum
         # print(deltac0)
-        '''deltac0 = max(0.000003, deltac0)
+        """deltac0 = max(0.000003, deltac0)
         if deltac0 == 0.000003:
             reward = -10
         else:
-            reward = math.log(0.0003, deltac0)'''
+            reward = math.log(0.0003, deltac0)"""
         b = 1 - self.alpha
         # reward = deltac0
         print(deltac0)
         reward = self.alpha * deltac0 * 100 + b * deltac1 * 100
         # reward = deltac0
         # reward = math.log(0.99, deltac0)
-        '''deltac0 = self.init_cost_sum/current_cost_sum
+        """deltac0 = self.init_cost_sum/current_cost_sum
         deltac1 = self.last_cost_sum/current_cost_sum
-        reward = math.log(deltac0,10)'''
+        reward = math.log(deltac0,10)"""
         self.last_cost_sum = current_cost_sum
-        if self.current_index_count >= self.max_count: # TODO
+        if self.current_index_count >= self.max_count:  # TODO
             self.cost_trace_overall.append(current_cost_sum)
             self.index_trace_overall.append(self.current_index)
             return self.last_state, reward, True

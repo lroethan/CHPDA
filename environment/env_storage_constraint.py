@@ -12,8 +12,8 @@ class Env:
         self.candidates = candidates
 
         # Create real/hypothetical index
-        self.db_client1 = ti_conn.TiDBDatabaseConnector(db_name='tpch')
-        self.db_client1 = ti_conn.TiDBDatabaseConnector(db_name='tpch')
+        self.db_client1 = ti_conn.TiDBDatabaseConnector(db_name="tpch")
+        self.db_client1 = ti_conn.TiDBDatabaseConnector(db_name="tpch")
 
         self._frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
         self.frequencies = np.array(self._frequencies) / np.array(self._frequencies).sum()
@@ -61,7 +61,7 @@ class Env:
 
         # Calculate storage cost
         storage_cost = self.db_client1.get_storage_cost(oids)[0]
-        if len(self.candidates[action].split('#')[1].split(',')) == 3:
+        if len(self.candidates[action].split("#")[1].split(",")) == 3:
             storage_cost = storage_cost / 2
 
         # Calculate current cost and check for improvement
