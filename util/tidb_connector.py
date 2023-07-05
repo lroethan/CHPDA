@@ -7,6 +7,7 @@ import pandas as pd
 import pymysql
 
 from util.database_connector import DatabaseConnector
+from util.histogram_parser import hist_tuple_to_dict, meta_tuple_to_dict
 
 
 class TiDBDatabaseConnector(DatabaseConnector):
@@ -30,6 +31,17 @@ class TiDBDatabaseConnector(DatabaseConnector):
         )
         self._cursor = self._connection.cursor()
 
+    def get_hist_and_meta(self):
+        """
+        Since this connection specifies a certain database, this function will get stats_histograms and save them in the connection for the calculation of index storage
+        """
+        o_stats_histograms = self.exec_fetch("show stats_histograms;", one=False)
+        o_stats_meta = self.exec_fetch("show stats_meta;", one=False)
+        
+        self.stats_histograms = hist_tuple_to_dict(o_stats_histograms)
+        self.stats_meta = meta_tuple_to_dict(o_stats_meta)
+
+        
     def enable_simulation(self):
         pass  # Do nothing
 

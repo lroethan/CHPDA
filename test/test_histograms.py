@@ -37,6 +37,7 @@ def split_rows(rows):
 
 def parse_text(explain_text):
     explain_lines = trim_and_split_explain_result(explain_text)
+    print(explain_lines)
     rows = split_rows(explain_lines[3 : len(explain_lines) - 1])
     result = {}
     for row in rows:
