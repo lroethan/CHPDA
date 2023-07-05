@@ -63,6 +63,7 @@ def hist_tuple_to_dict(hist_tuple):
     result = {}
     for tpl in hist_tuple:
         key = tpl[1] + "#" + tpl[3]
+        key = key.lower()
         value = [tpl[6], tpl[7], tpl[8]]
         result[key] = value
     return result

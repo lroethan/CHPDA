@@ -7,6 +7,10 @@ import model.model_storage_constraint as dqn_fs
 import util.tidb_connector as ti_conn
 
 
+
+DATABASE = 'tpcds'
+N_WORKLOAD = 60
+
 def run_dqn(is_fix_count, hyperparameter, x, is_dnn, is_ps, is_double, a, workload_path, cands_path):
     # Set name for experiment
     hyperparameter['NAME'] = f"TEST_{x}"
@@ -63,7 +67,7 @@ def get_performance(selected_indexes, frequencies, workload_path):
     # Load the workload and connect to TiDB
     with open(workload_path, "rb") as wf:
         workload = pickle.load(wf)
-    tidb_client = ti_conn.TiDBDatabaseConnector("tpch")
+    tidb_client = ti_conn.TiDBDatabaseConnector(DATABASE)
 
     # Calculate the original cost
     original_cost = (np.array(tidb_client.get_queries_cost(workload)) * frequencies).sum()
@@ -142,7 +146,7 @@ def entry(is_fix_count: bool, constraint, workload_path, cands_path):
         selected_indexes = run_dqn(is_fix_count, conf, constraint, False, False, False, 0, workload_path, cands_path)
 
     # frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
-    frequencies = [1] * 14
+    frequencies = [1] * N_WORKLOAD
     print("===============SELECTED INDEXES=================")
     print(selected_indexes)
     print(get_performance(selected_indexes, frequencies, workload_path))
@@ -150,8 +154,10 @@ def entry(is_fix_count: bool, constraint, workload_path, cands_path):
 
 if __name__ == '__main__':
     
-    WORKLOAD_PATH = "entry/workload.pickle"
-    CANDS_PATH = "entry/cands.pickle"
+    # WORKLOAD_PATH = "entry/workload.pickle"
+    WORKLOAD_PATH = "entry/tpcds.pickle"
+    CANDS_PATH = "entry/hand_cands.pickle"
+    # CANDS_PATH = "entry/cands.pickle"
     # CANDS_PATH = "entry/cands2.pickle"
     
     entry(True, 4, WORKLOAD_PATH, CANDS_PATH)

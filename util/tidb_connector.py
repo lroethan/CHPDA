@@ -76,7 +76,7 @@ class TiDBDatabaseConnector(DatabaseConnector):
             cols = [col for col in self.stats_histogram if col.startswith(table_name)]
         else:
             cols = col_name.split(",")
-            cols = [table_name + "#" + col.upper() for col in cols]
+            cols = [table_name + "#" + col for col in cols]
             
         size = 0
         for col in cols:

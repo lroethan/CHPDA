@@ -5,6 +5,8 @@ import numpy as np
 import util.tidb_connector as tidb
 
 
+DATABASE = 'tpcds'
+N_WORKLOAD = 60
 
 class Env:
     def __init__(self, workload, candidates, mode, a):
@@ -13,9 +15,9 @@ class Env:
 
         # Create real/hypothetical index
         self.mode = mode
-        self.conn = tidb.TiDBDatabaseConnector(db_name="tpch")
-        self.conn_for_checkout = tidb.TiDBDatabaseConnector(db_name="tpch")
-        self._frequencies = [1265, 897, 643, 1190, 521, 1688, 778, 1999, 1690, 1433, 1796, 1266, 1046, 1353]
+        self.conn = tidb.TiDBDatabaseConnector(db_name=DATABASE)
+        self.conn_for_checkout = tidb.TiDBDatabaseConnector(db_name=DATABASE)
+        self._frequencies = [1] * N_WORKLOAD
         self.frequencies = np.array(self._frequencies) / np.array(self._frequencies).sum()
 
         # Initial state
