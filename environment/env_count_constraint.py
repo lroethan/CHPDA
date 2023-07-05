@@ -4,7 +4,6 @@ import numpy as np
 
 import util.tidb_connector as tidb
 
-max_index_size = 4
 
 
 class Env:
@@ -39,6 +38,7 @@ class Env:
         # Monitor info
         self.cost_trace_overall = list()
         self.index_trace_overall = list()
+        self.storage_trace_overall = list()
         self.min_cost_overall = list()
         self.min_indexes_overall = list()
         self.current_min_cost = (np.array(self.conn.get_queries_cost(workload)) * 0.1 * self.frequencies).sum()
@@ -93,64 +93,42 @@ class Env:
             # self.index_trace_overall.append(self.currenct_index)
             return self.last_state, 0, False
 
-        # print("====================")
-        # print(self.candidates)
-        # print("====================")
-        idx_oid, _ = self.conn.execute_create_hypo(self.candidates[action])
+        idx_id, idx_oid = self.conn.execute_create_hypo(self.candidates[action])
 
         self.current_index[action] = 1.0
-        oids: List[str] = list()
-        oids.append(idx_oid)
-        storage_cost = self.conn.get_storage_cost(oids)[0]  # TODO
-        # print(storage_cost)
-        self.current_storage_sum += storage_cost
+
+        storage_cost = self.conn.get_indexe_size(idx_oid)  
+
+        
         self.current_index_storage[action] = storage_cost
         self.current_index_count += 1
 
-        # reward & performance gain
+
         current_cost_info = np.array(self.conn.get_queries_cost(self.workload)) * self.frequencies
         current_cost_sum = current_cost_info.sum()
-        # performance_gain_current = self.init_cost_sum - current_cost_sum
-        # performance_gain_current = (self.last_cost_sum - current_cost_sum)/self.last_cost_sum
-        # performance_gain_avg = performance_gain_current.round(1)
-        # self.performance_gain[action] = performance_gain_avg
-        # monitor info
-        # self.cost_trace_overall.append(current_cost_sum)
+
 
         # update
         self.last_cost = current_cost_info
         # state = (self.init_cost - current_cost_info)/self.init_cost
         self.last_state = np.append(self.frequencies, self.current_index)
-        deltac0 = (self.init_cost_sum - current_cost_sum) / self.init_cost_sum
-        deltac1 = (self.last_cost_sum - current_cost_sum) / self.init_cost_sum
-        # print(deltac0)
-        """deltac0 = max(0.000003, deltac0)
-        if deltac0 == 0.000003:
-            reward = -10
-        else:
-            reward = math.log(0.0003, deltac0)"""
-        b = 1 - self.alpha
-        # reward = deltac0
-        print(deltac0)
-        reward = self.alpha * deltac0 * 100 + b * deltac1 * 100
-        # reward = deltac0
-        # reward = math.log(0.99, deltac0)
-        """deltac0 = self.init_cost_sum/current_cost_sum
-        deltac1 = self.last_cost_sum/current_cost_sum
-        reward = math.log(deltac0,10)"""
+        
+        reward = (self.init_cost_sum - current_cost_sum) / self.init_cost_sum
         self.last_cost_sum = current_cost_sum
-        if self.current_index_count >= self.max_count:  # TODO
+        
+        
+        if self.current_index_count >= self.max_count or self.current_storage_sum >= 284808301.72:  
             self.cost_trace_overall.append(current_cost_sum)
             self.index_trace_overall.append(self.current_index)
             return self.last_state, reward, True
         else:
             return self.last_state, reward, False
-            # re5 return self.last_state, reward, False
 
     def reset(self):
         self.last_state = self.init_state
         self.last_cost = self.init_cost
         self.last_cost_sum = self.init_cost_sum
+        self.current_storage_sum = 0
         # self.index_trace_overall.append(self.currenct_index)
         self.index_oids = np.zeros(len(self.candidates))
         self.performance_gain = np.zeros(len(self.candidates))

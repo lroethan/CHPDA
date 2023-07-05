@@ -67,13 +67,16 @@ def get_performance(selected_indexes, frequencies, workload_path):
 
     # Calculate the original cost
     original_cost = (np.array(tidb_client.get_queries_cost(workload)) * frequencies).sum()
+    # original_storage_cost = [tidb_client.get_indexe_size(index) for index in selected_indexes].sum()
     print(f"Original cost: {original_cost}")
 
     # Create the hypothetical indexes and calculate the new cost
     for index in selected_indexes:
         tidb_client.execute_create_hypo(index)
     new_cost = (np.array(tidb_client.get_queries_cost(workload)) * frequencies).sum()
+    new_storage_cost = sum([tidb_client.get_indexe_size(index) for index in selected_indexes])
     print(f"New cost: {new_cost}")
+    print(f"Index storage cost: {new_storage_cost}")
 
     # Calculate the cost reduction and return it
     cost_reduction = (original_cost - new_cost) / original_cost
@@ -151,4 +154,4 @@ if __name__ == '__main__':
     CANDS_PATH = "entry/cands.pickle"
     # CANDS_PATH = "entry/cands2.pickle"
     
-    entry(True, 10, WORKLOAD_PATH, CANDS_PATH)
+    entry(True, 4, WORKLOAD_PATH, CANDS_PATH)

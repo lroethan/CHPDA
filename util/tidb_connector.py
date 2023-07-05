@@ -18,12 +18,13 @@ class TiDBDatabaseConnector(DatabaseConnector):
             db_name = "test"
         self._connection = None
         self.db_name = db_name
-        self.create_connection()
+        self._create_connection()
+        self._create_hist_and_meta()
 
         self.set_random_seed()
         logging.debug("TiDB connector created: {}".format(db_name))
 
-    def create_connection(self):
+    def _create_connection(self):
         if self._connection:
             self.close()
         self._connection = pymysql.connect(
@@ -31,17 +32,16 @@ class TiDBDatabaseConnector(DatabaseConnector):
         )
         self._cursor = self._connection.cursor()
 
-    def get_hist_and_meta(self):
+    def _create_hist_and_meta(self):
         """
         Since this connection specifies a certain database, this function will get stats_histograms and save them in the connection for the calculation of index storage
         """
         o_stats_histograms = self.exec_fetch("show stats_histograms;", one=False)
         o_stats_meta = self.exec_fetch("show stats_meta;", one=False)
-        
-        self.stats_histograms = hist_tuple_to_dict(o_stats_histograms)
+
+        self.stats_histogram = hist_tuple_to_dict(o_stats_histograms)
         self.stats_meta = meta_tuple_to_dict(o_stats_meta)
 
-        
     def enable_simulation(self):
         pass  # Do nothing
 
@@ -64,13 +64,25 @@ class TiDBDatabaseConnector(DatabaseConnector):
         logging.info(f"load data: {load_sql}")
         self.exec_only(load_sql)
 
-    def get_indexe_size(self, ident):
-        # ident: table_name.idx_name
-        table_name = ident.split(".")[0]
-        idx_name = ident.split(".")[1]
-        sql = f"select sum(data_length+index_length) from information_schema.tables where table_schema='{self.db_name}' and table_name='{table_name}'"
-        result = self.exec_fetch(sql)
-        return result[0][0]
+    def get_indexe_size(self, candidate):
+        '''
+        This function is the base for storage cost calculation
+        '''
+        table_name = candidate.split("#")[0]
+        col_name = candidate.split("#")[1]
+        
+        cols = []
+        if col_name == "tiflash":
+            cols = [col for col in self.stats_histogram if col.startswith(table_name)]
+        else:
+            cols = col_name.split(",")
+            cols = [table_name + "#" + col.upper() for col in cols]
+            
+        size = 0
+        for col in cols:
+            size += self.stats_histogram[col][-1] * self.stats_meta[table_name]
+        return size
+    
 
     def drop_database(self, database_name):
         statement = f"DROP DATABASE {database_name};"
@@ -106,8 +118,6 @@ class TiDBDatabaseConnector(DatabaseConnector):
         return True
 
     def show_simulated_index(self, table_name):
-        # 返回某个表所有的hypo index
-        # 格式：table_name.hypo_index_name
         sql = f"show create table {table_name}"
         result = self.exec_fetch(sql)
         hypo_indexes = []
@@ -128,6 +138,11 @@ class TiDBDatabaseConnector(DatabaseConnector):
         self.exec_only(statement)
 
     def _simulate_index(self, index):
+        '''
+        Candidate index is in the format of table_name#col1,col2,col3
+        identifier is in the format of tablename.hypo_table_name_col1_col2_col3_idx
+        note the difference between candidate index and identifier
+        '''
         schema = index.split("#")
         table_name = schema[0]
         idx_cols = schema[1]
@@ -135,15 +150,14 @@ class TiDBDatabaseConnector(DatabaseConnector):
             self._simulate_tiflash(table_name)
             return (f"{table_name}.tiflash", "tiflash")
 
-        sql_idx_cols = idx_cols.replace(",", "_")  # 只是用来给 idx_name 用的
+        sql_idx_cols = idx_cols.replace(",", "_")  
         idx_name = f"hypo_{table_name}_{sql_idx_cols}_idx"
 
         statement = f"create index {idx_name} type hypo " f"on {table_name} ({idx_cols})"
         self.exec_fetch(statement)
-        return (f"{table_name}.{idx_name}", idx_name)
+        return (f"{table_name}.{idx_name}", index) # return identifier and candidate index
 
     def _drop_simulated_index(self, ident):
-        # 按照表名.列名来删除某个虚拟索引
         table_name = ident.split(".")[0]
         idx_name = ident.split(".")[1]
         if idx_name == "tiflash":
@@ -202,7 +216,7 @@ class TiDBDatabaseConnector(DatabaseConnector):
         return [x[0] for x in result]
 
     def delete_indexes(self):
-        # Deelete all hypo PD
+        # Delete all hypo PD
         tables = self.get_tables()
         for table in tables:
             # 1. Delete all hypo tiflash

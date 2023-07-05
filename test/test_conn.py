@@ -19,7 +19,8 @@ def main():
     conn = connector.TiDBDatabaseConnector("tpch")
     
     
-    conn.get_hist_and_meta()
+    print(conn.get_indexe_size("customer#tiflash"))
+    
     # o_stats = conn.exec_fetch("show stats_meta;", one=False)
     
     # print(o_stats)

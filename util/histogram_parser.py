@@ -57,21 +57,21 @@ def parse_text(explain_text):
 
 
 def hist_tuple_to_dict(hist_tuple):
-    '''
+    """
     {'customer#C_CUSTKEY': [149568, 0, 8.0], 'customer#C_NAME': [148224, 0, 19.0]}
-    '''
+    """
     result = {}
     for tpl in hist_tuple:
-        key = tpl[1] + '#' + tpl[3]
+        key = tpl[1] + "#" + tpl[3]
         value = [tpl[6], tpl[7], tpl[8]]
         result[key] = value
     return result
 
 
 def meta_tuple_to_dict(hist_tuple):
-    '''
+    """
     {'customer': 150000, 'lineitem': 8143998, 'nation': 25, 'orders': 1500000, 'part': 200000, 'partsupp': 800000, 'region': 5, 'supplier': 10000}
-    '''
+    """
     result = {}
     for tpl in hist_tuple:
         key = tpl[1]
