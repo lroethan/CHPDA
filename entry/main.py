@@ -102,13 +102,13 @@ def get_performance(selected_indexes, frequencies, workload_path):
 # }
 
 test_count_conf = {
-    "LR": 0.1,
+    "LR": 0.02,
     "EPISILO": 0.9,
     "Q_ITERATION": 200,
     "U_ITERATION": 5,
     "BATCH_SIZE": 64,
     "GAMMA": 0.95,
-    "EPISODES": 50,
+    "EPISODES": 800,
     "LEARNING_START": 1000,
     "MEMORY_CAPACITY": 20000,
 }
@@ -160,4 +160,4 @@ if __name__ == '__main__':
     # CANDS_PATH = "entry/cands.pickle"
     # CANDS_PATH = "entry/cands2.pickle"
     
-    entry(True, 4, WORKLOAD_PATH, CANDS_PATH)
+    entry(True, 5, WORKLOAD_PATH, CANDS_PATH)

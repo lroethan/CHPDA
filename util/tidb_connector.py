@@ -152,13 +152,14 @@ class TiDBDatabaseConnector(DatabaseConnector):
         idx_cols = schema[1]
         if idx_cols == "tiflash":
             self._simulate_tiflash(table_name)
-            return (f"{table_name}.tiflash", "tiflash")
+            return (f"{table_name}.tiflash", index)
 
         sql_idx_cols = idx_cols.replace(",", "_")  
         idx_name = f"hypo_{table_name}_{sql_idx_cols}_idx"
 
         statement = f"create index {idx_name} type hypo " f"on {table_name} ({idx_cols})"
         self.exec_fetch(statement)
+        print("[action] ", index)
         return (f"{table_name}.{idx_name}", index) # return identifier and candidate index
 
     def _drop_simulated_index(self, ident):

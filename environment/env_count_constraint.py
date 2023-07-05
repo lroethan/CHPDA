@@ -33,7 +33,7 @@ class Env:
         # Utility info
         self.index_oids = np.zeros(len(candidates))
         self.performance_gain = np.zeros(len(candidates))
-        self.current_index_count = 0
+        self.n_exist_idx = 0
         self.current_index = np.zeros(len(candidates))
         self.current_index_storage = np.zeros(len(candidates))
 
@@ -88,43 +88,39 @@ class Env:
         self.max_count -= len(self.pre_create)
 
     def step(self, action):
-        action = action[0]  # 这里的 action 是一个 list，里面只有一个元素，所以取第一个元素，且为整数
-
-        if self.current_index[action] != 0.0:
-            # self.cost_trace_overall.append(self.last_cost_sum)
-            # self.index_trace_overall.append(self.currenct_index)
-            return self.last_state, 0, False
-
-        idx_id, idx_oid = self.conn.execute_create_hypo(self.candidates[action])
-
-        self.current_index[action] = 1.0
-
-        storage_cost = self.conn.get_index_size(idx_oid)  
-
         
-        self.current_index_storage[action] = storage_cost
-        self.current_index_count += 1
+        action = action[0]  
 
+        # recommended index is existed
+        if self.current_index[action] != 0.0: 
+            return self.last_state, 0, False
+        
+        idx_id, idx_oid = self.conn.execute_create_hypo(self.candidates[action])
+        self.current_index[action] = 1.0
+        
+        # this action influence the envrionment
+        self.current_storage_sum = self.conn.get_index_size(idx_oid) 
+        self.n_exist_idx += 1
+        l_current_cost = np.array(self.conn.get_queries_cost(self.workload)) * self.frequencies
+        current_cost_sum = l_current_cost.sum()
 
-        current_cost_info = np.array(self.conn.get_queries_cost(self.workload)) * self.frequencies
-        current_cost_sum = current_cost_info.sum()
-
-
-        # update
-        self.last_cost = current_cost_info
-        # state = (self.init_cost - current_cost_info)/self.init_cost
+        self.last_cost = l_current_cost
         self.last_state = np.append(self.frequencies, self.current_index)
         
+        # reward is cost reduction
         reward = (self.init_cost_sum - current_cost_sum) / self.init_cost_sum
         self.last_cost_sum = current_cost_sum
         
+        # constraint    
+        done = False
+        if self.n_exist_idx >= self.max_count or self.current_storage_sum >= 284808301.72:  
+            done = True
         
-        if self.current_index_count >= self.max_count or self.current_storage_sum >= 284808301.72:  
-            self.cost_trace_overall.append(current_cost_sum)
-            self.index_trace_overall.append(self.current_index)
-            return self.last_state, reward, True
-        else:
-            return self.last_state, reward, False
+        self.cost_trace_overall.append(current_cost_sum)
+        self.index_trace_overall.append(self.current_index)
+        self.storage_trace_overall.append(self.current_storage_sum)
+        
+        return self.last_state, reward, done
 
     def reset(self):
         self.last_state = self.init_state
@@ -134,7 +130,7 @@ class Env:
         # self.index_trace_overall.append(self.currenct_index)
         self.index_oids = np.zeros(len(self.candidates))
         self.performance_gain = np.zeros(len(self.candidates))
-        self.current_index_count = 0
+        self.n_exist_idx = 0
         self.current_min_cost = np.array(self.conn.get_queries_cost(self.workload)).sum()
         self.current_min_index = np.zeros(len(self.candidates))
         self.current_index = np.zeros(len(self.candidates))

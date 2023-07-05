@@ -6,6 +6,7 @@ __pycache__/
 *$py.class
 
 # experiment related
+exp_model_count_constraint.pymonitor/
 expmodel_count_constraint.pymview/
 *.png
 *.pickles

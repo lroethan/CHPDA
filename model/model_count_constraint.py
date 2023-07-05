@@ -222,24 +222,24 @@ class DQN:
         print("====== model Loaded ======")
         self.actor.load_state_dict(torch.load(directory + "dqn.pth"))
 
-    def train(self, load_checkpoint, max_index):
+    def train(self, is_load, max_index):
         """
         This function trains the reinforcement learning agent.
 
         Args:
-        load_checkpoint (bool): Flag to determine if we want to load from a saved checkpoint.
+        is_load (bool): Flag to determine if we want to load from a saved checkpoint.
         max_index (int): Maximum number of indexes to use for training.
         """
         # Load a saved checkpoint if the flag is set.
-        if load_checkpoint:
+        if is_load:
             self.load()
 
         # Set maximum number of indexes for the environment.
         self.envx.max_count = max_index
 
         # Get pre-created indexes if they exist.
-        pre_created_indexes = self.envx.checkout
-        # pre_created_indexes = []
+        # pre_created_indexes = self.envx.checkout
+        pre_created_indexes = []
 
         # If there are enough pre-created indexes, we use them and exit early.
         if pre_created_indexes and len(pre_created_indexes) >= max_index:
