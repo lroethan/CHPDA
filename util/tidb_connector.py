@@ -52,8 +52,13 @@ class TiDBDatabaseConnector(DatabaseConnector):
         logging.info(f"load data: {load_sql}")
         self.exec_only(load_sql)
 
-    def indexes_size(self):
-        return 0  # TODO
+    def get_indexe_size(self, ident):
+        # ident: table_name.idx_name
+        table_name = ident.split(".")[0]
+        idx_name = ident.split(".")[1]
+        sql = f"select sum(data_length+index_length) from information_schema.tables where table_schema='{self.db_name}' and table_name='{table_name}'"
+        result = self.exec_fetch(sql)
+        return result[0][0]
 
     def drop_database(self, database_name):
         statement = f"DROP DATABASE {database_name};"
