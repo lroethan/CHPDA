@@ -22,7 +22,7 @@ else:
     device = "cpu"
 
 script_name = os.path.basename(__file__)
-directory = "./exp" + script_name + "mview" + "/"
+directory = "./exp_" + script_name + "monitor" + "/"
 
 
 class NN(nn.Module):
