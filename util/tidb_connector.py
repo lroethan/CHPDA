@@ -64,7 +64,7 @@ class TiDBDatabaseConnector(DatabaseConnector):
         logging.info(f"load data: {load_sql}")
         self.exec_only(load_sql)
 
-    def get_indexe_size(self, candidate):
+    def get_index_size(self, candidate):
         '''
         This function is the base for storage cost calculation
         '''
@@ -81,6 +81,10 @@ class TiDBDatabaseConnector(DatabaseConnector):
         size = 0
         for col in cols:
             size += self.stats_histogram[col][-1] * self.stats_meta[table_name]
+        
+        if col_name == "tiflash":
+            return size / 3  # tiflash : tikv = 1:3  
+        
         return size
     
 

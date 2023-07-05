@@ -74,7 +74,7 @@ def get_performance(selected_indexes, frequencies, workload_path):
     for index in selected_indexes:
         tidb_client.execute_create_hypo(index)
     new_cost = (np.array(tidb_client.get_queries_cost(workload)) * frequencies).sum()
-    new_storage_cost = sum([tidb_client.get_indexe_size(index) for index in selected_indexes])
+    new_storage_cost = sum([tidb_client.get_index_size(index) for index in selected_indexes])
     print(f"New cost: {new_cost}")
     print(f"Index storage cost: {new_storage_cost}")
 

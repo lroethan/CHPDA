@@ -97,7 +97,7 @@ class Env:
 
         self.current_index[action] = 1.0
 
-        storage_cost = self.conn.get_indexe_size(idx_oid)  
+        storage_cost = self.conn.get_index_size(idx_oid)  
 
         
         self.current_index_storage[action] = storage_cost
