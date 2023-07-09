@@ -127,7 +127,7 @@ class DQN:
         self.actor_loss_trace = list()
 
         # environment
-        self.envx = env.Env(self.workload, self.action, self.index_mode, a)
+        self.envx = env.Env(self.workload, self.action, self.index_mode, a, self.args.database, self.args.num_workload)
 
         # Initialize summary writer for storing parameters (Tensorboard)
         self.writer = SummaryWriter(directory)

@@ -5,20 +5,15 @@ import numpy as np
 import util.tidb_connector as tidb
 
 
-DATABASE = "tpcds"
-N_WORKLOAD = 60
-
-
 class Env:
-    def __init__(self, workload, candidates, mode, a):
+    def __init__(self, workload, candidates, mode, a, database, num_workload):
         self.workload = workload
         self.candidates = candidates
 
         # Create real/hypothetical index
         self.mode = mode
-        self.conn = tidb.TiDBDatabaseConnector(db_name=DATABASE)
-        self.conn_for_checkout = tidb.TiDBDatabaseConnector(db_name=DATABASE)
-        self._frequencies = [1] * N_WORKLOAD
+        self.conn = tidb.TiDBDatabaseConnector(db_name=database)
+        self._frequencies = [1] * num_workload
         self.frequencies = np.array(self._frequencies) / np.array(self._frequencies).sum()
 
         # Initial state
@@ -53,36 +48,6 @@ class Env:
 
         self.pre_create = []
 
-    @property
-    def checkout(self):
-        pre_index_set = []
-        while True:
-            current_max_benefit = 0
-            current_index = None
-            current_index_len = 0
-            original_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
-
-            for index in self.candidates:
-                ident, _ = self.conn_for_checkout.execute_create_hypo(index)
-                current_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
-                benefit = (original_workload_cost - current_workload_cost) / original_workload_cost
-                if benefit > 0.4 and current_max_benefit < benefit:
-                    current_max_benefit = benefit
-                    current_index = index
-                    current_index_len = current_index_len  # 这个暂时没用上
-                self.conn_for_checkout.execute_delete_hypo(ident)
-
-            if current_index is None:
-                break
-            pre_index_set.append(current_index)
-            self.conn_for_checkout.execute_create_hypo(current_index)
-        # pre_index_set = ['lineitem#l_orderkey,l_shipdate', 'lineitem#l_partkey,l_orderkey', 'lineitem#l_receiptdate',
-        # 'lineitem#l_shipdate,l_partkey', 'lineitem#l_suppkey,l_commitdate'] pre_index_set = ['lineitem#l_orderkey,
-        # l_suppkey', 'lineitem#l_partkey,l_suppkey', 'lineitem#l_receiptdate', 'lineitem#l_shipdate,l_discount',
-        # 'lineitem#l_suppkey,l_commitdate'] pre_index_set.append('lineitem#l_orderkey')
-        self.pre_create = pre_index_set
-        # self.conn_for_checkout.delete_indexes()
-        self.max_count -= len(self.pre_create)
 
     def step(self, action):
         action = action[0]

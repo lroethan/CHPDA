@@ -2,14 +2,9 @@ import numpy as np
 import pickle
 import sys
 
-sys.path.append("/home/ubuntu/CODE/CHPDA/")
-import model.model_count_constraint as dqn_fc
-import model.model_storage_constraint as dqn_fs
-import util.tidb_connector as ti_conn
+from model.model_count_constraint import DQN
+import util.tidb_connector as connector
 from argparse import ArgumentParser
-
-
-N_WORKLOAD = 60
 
 
 def get_args():
@@ -43,7 +38,7 @@ def run_dqn(args, is_dnn, is_ps, is_double, a):
     with open(args.c_path, "rb") as f:
         candidate = pickle.load(f)
 
-    agent = dqn_fc.DQN(workload[:], candidate, "hypo", args, is_dnn, is_ps, is_double, a)
+    agent = DQN(workload[:], candidate, "hypo", args, is_dnn, is_ps, is_double, a)
 
     one_hot_indexes = agent.train(False, count_constraint)
     selected_indexes = [candidate[i] for i, flag in enumerate(one_hot_indexes) if flag == 1.0]
@@ -52,20 +47,21 @@ def run_dqn(args, is_dnn, is_ps, is_double, a):
 
 
 def get_performance(selected_indexes, frequencies, workload_path, database):
+    
+    conn = connector.TiDBDatabaseConnector(database)
     frequencies = np.array(frequencies) / np.array(frequencies).sum()
 
     with open(workload_path, "rb") as wf:
         workload = pickle.load(wf)
 
-    tidb_client = ti_conn.TiDBDatabaseConnector(database)
-
-    original_cost = (np.array(tidb_client.get_queries_cost(workload)) * frequencies).sum()
+    
+    original_cost = (np.array(conn.get_queries_cost(workload)) * frequencies).sum()
     print(f"Original cost: {original_cost}")
 
     for index in selected_indexes:
-        tidb_client.execute_create_hypo(index)
-    new_cost = (np.array(tidb_client.get_queries_cost(workload)) * frequencies).sum()
-    new_storage_cost = sum([tidb_client.get_index_size(index) for index in selected_indexes])
+        conn.execute_create_hypo(index)
+    new_cost = (np.array(conn.get_queries_cost(workload)) * frequencies).sum()
+    new_storage_cost = sum([conn.get_index_size(index) for index in selected_indexes])
     print(f"New cost: {new_cost}")
     print(f"Index storage cost: {new_storage_cost}")
 
