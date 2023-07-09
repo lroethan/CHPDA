@@ -1,12 +1,26 @@
-echo "===== Sorting imports ====="
+#!/bin/bash
 
-isort --trailing-comma --line-width 120 --multi-line 3 environment/
-isort --trailing-comma --line-width 120 --multi-line 3 model/
-isort --trailing-comma --line-width 120 --multi-line 3 util/
+if ! command -v black &> /dev/null; then
+    echo "Error: Black is not installed. Please install Black (https://github.com/psf/black) before running this script."
+    exit 1
+fi
 
-echo ""
-echo "===== Formatting via black ====="
+if [ -z "$1" ]; then
+    echo "Error: No file or directory specified."
+    echo "Usage: ./format.sh <file or directory>"
+    exit 1
+fi
 
-black --line-length 120 environment/
-black --line-length 120 model/
-black --line-length 120 util/
+target="$1"
+
+if [ -f "$target" ]; then
+    black "$target"
+    echo "Formatted file: $target"
+elif [ -d "$target" ]; then
+    find "$target" -name "*.py" -exec black --line-length 140 {} \;
+    echo "Formatted files in directory: $target"
+else
+    echo "Error: Invalid file or directory specified."
+    echo "Usage: ./format.sh <file or directory>"
+    exit 1
+fi

@@ -1,5 +1,6 @@
 import json
 
+
 def is_separate_line(line):
     line = line.strip()
     if len(line) == 0:
@@ -56,7 +57,6 @@ def parse_text(explain_text):
     return json.dumps(result)
 
 
-
 # def extract_element(table_string, row_index, column_name):
 #     rows = table_string.strip().split('\n')
 #     column_names = rows[1].strip().split('|')
@@ -64,10 +64,10 @@ def parse_text(explain_text):
 #     column_index = column_names.index(column_name.strip())
 #     data_row = rows[row_index + 2].strip().split('|')
 #     element = data_row[column_index].strip()
-    
+
 #     return element
 
-histograms = '''
+histograms = """
 +---------+------------+----------------+-----------------+----------+---------------------+----------------+------------+--------------+-------------------------+-------------+-----------------+----------------+----------------+---------------+
 | Db_name | Table_name | Partition_name | Column_name     | Is_index | Update_time         | Distinct_count | Null_count | Avg_col_size | Correlation             | Load_status | Total_mem_usage | Hist_mem_usage | Topn_mem_usage | Cms_mem_usage |
 +---------+------------+----------------+-----------------+----------+---------------------+----------------+------------+--------------+-------------------------+-------------+-----------------+----------------+----------------+---------------+
@@ -135,8 +135,7 @@ histograms = '''
 | tpch    | supplier   |                | S_ACCTBAL       |        0 | 2023-06-29 15:31:36 |           9955 |          0 |            9 |    0.015707805673078057 | allEvicted  |               0 |              0 |              0 |             0 |
 | tpch    | supplier   |                | S_COMMENT       |        0 | 2023-06-29 15:31:35 |          10000 |          0 |        64.06 |   -0.008585964205859642 | allEvicted  |               0 |              0 |              0 |             0 |
 +---------+------------+----------------+-----------------+----------+---------------------+----------------+------------+--------------+-------------------------+-------------+-----------------+----------------+----------------+---------------+
-'''
+"""
 
 result = parse_text(histograms)
-print(result)  
-
+print(result)

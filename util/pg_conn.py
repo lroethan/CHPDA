@@ -18,7 +18,11 @@ class PGHypo:
         self.password = defaults.get("pg_password")
         self.database = defaults.get("pg_database")
         self.conn = pg.connect(
-            database=self.database, user=self.user, password=self.password, host=self.host, port=self.port
+            database=self.database,
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
         )
 
     def close(self):

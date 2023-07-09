@@ -28,7 +28,12 @@ class TiDBDatabaseConnector(DatabaseConnector):
         if self._connection:
             self.close()
         self._connection = pymysql.connect(
-            host="127.0.0.1", port=4000, user="root", password="", database="{}".format(self.db_name), local_infile=True
+            host="127.0.0.1",
+            port=4000,
+            user="root",
+            password="",
+            database="{}".format(self.db_name),
+            local_infile=True,
         )
         self._cursor = self._connection.cursor()
 
@@ -65,28 +70,27 @@ class TiDBDatabaseConnector(DatabaseConnector):
         self.exec_only(load_sql)
 
     def get_index_size(self, candidate):
-        '''
+        """
         This function is the base for storage cost calculation
-        '''
+        """
         table_name = candidate.split("#")[0]
         col_name = candidate.split("#")[1]
-        
+
         cols = []
         if col_name == "tiflash":
             cols = [col for col in self.stats_histogram if col.startswith(table_name)]
         else:
             cols = col_name.split(",")
             cols = [table_name + "#" + col for col in cols]
-            
+
         size = 0
         for col in cols:
             size += self.stats_histogram[col][-1] * self.stats_meta[table_name]
-        
+
         if col_name == "tiflash":
-            return size / 3  # tiflash : tikv = 1:3  
-        
+            return size / 3  # tiflash : tikv = 1:3
+
         return size
-    
 
     def drop_database(self, database_name):
         statement = f"DROP DATABASE {database_name};"
@@ -142,11 +146,11 @@ class TiDBDatabaseConnector(DatabaseConnector):
         self.exec_only(statement)
 
     def _simulate_index(self, index):
-        '''
+        """
         Candidate index is in the format of table_name#col1,col2,col3
         identifier is in the format of tablename.hypo_table_name_col1_col2_col3_idx
         note the difference between candidate index and identifier
-        '''
+        """
         schema = index.split("#")
         table_name = schema[0]
         idx_cols = schema[1]
@@ -154,13 +158,18 @@ class TiDBDatabaseConnector(DatabaseConnector):
             self._simulate_tiflash(table_name)
             return (f"{table_name}.tiflash", index)
 
-        sql_idx_cols = idx_cols.replace(",", "_")  
+        sql_idx_cols = idx_cols.replace(",", "_")
         idx_name = f"hypo_{table_name}_{sql_idx_cols}_idx"
+        if len(idx_name) >= 60:
+            idx_name = idx_name[:60]
 
         statement = f"create index {idx_name} type hypo " f"on {table_name} ({idx_cols})"
         self.exec_fetch(statement)
         print("[action] ", index)
-        return (f"{table_name}.{idx_name}", index) # return identifier and candidate index
+        return (
+            f"{table_name}.{idx_name}",
+            index,
+        )  # return identifier and candidate index
 
     def _drop_simulated_index(self, ident):
         table_name = ident.split(".")[0]

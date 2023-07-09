@@ -190,7 +190,14 @@ class Parser:
         return "", False
 
     def parse_lr_expr(self, expr, is_or, is_target):
-        etype, table_name1, col_name1, value_type1, value1, is_o = 10, "", "", "", "", True
+        etype, table_name1, col_name1, value_type1, value1, is_o = (
+            10,
+            "",
+            "",
+            "",
+            "",
+            True,
+        )
         if type(expr).__name__ == "list":
             return etype, table_name1, col_name1, value_type1, value1, is_o
         if "ColumnRef" in expr.keys():
@@ -252,14 +259,7 @@ class Parser:
             return True
         etype = etype1 + etype2
         # print(a_expr)
-        if (
-            not is_target
-            and op in self.support_op.keys()
-            and is_o1
-            and is_o2
-            and (etype == 1 or etype == 0)
-            and not is_in_or
-        ):
+        if not is_target and op in self.support_op.keys() and is_o1 and is_o2 and (etype == 1 or etype == 0) and not is_in_or:
             if etype == 0:
                 # table_name, _type, value_type, otherside):
                 c_l = Condition(table_name1, "join", col_name1, "", table_name2 + "#@#" + col_name2)

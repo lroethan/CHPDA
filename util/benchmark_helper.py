@@ -1,15 +1,16 @@
 import os
 import pymysql
 
+
 def setup_database(db_name):
     # 连接到 TiDB
     conn = pymysql.connect(
-        host='localhost',
+        host="localhost",
         port=4000,
-        user='root',
-        password='',
+        user="root",
+        password="",
         local_infile=True,
-        charset='utf8mb4'
+        charset="utf8mb4",
     )
 
     # # 检查是否存在 db_name 数据库，如果不存在则创建
@@ -34,10 +35,10 @@ def setup_database(db_name):
     #         print(f"Table creation failed: {e}")
 
     # 加载 stats 下的所有 json 文件
-    stats_dir = os.path.join('/home/ubuntu/CODE/CHPDA/workload', db_name, 'stats')
+    stats_dir = os.path.join("/home/ubuntu/CODE/CHPDA/workload", db_name, "stats")
     stats_files = os.listdir(stats_dir)
     for file in stats_files:
-        if file.endswith('.json'):
+        if file.endswith(".json"):
             stats_file_path = os.path.join(stats_dir, file)
             load_stats_query = f"LOAD STATS '{stats_file_path}'"
             try:
@@ -56,6 +57,7 @@ def setup_database(db_name):
     cursor.close()
     conn.close()
 
+
 # 调用函数并传入 db_name 参数
-db_name = 'tpcds'
+db_name = "tpcds"
 setup_database(db_name)

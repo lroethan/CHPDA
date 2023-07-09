@@ -108,7 +108,14 @@ class DQN:
             u.append(np.array(_b[2], copy=False))
             r.append(np.array(_b[3], copy=False))
             d.append(np.array(_b[4], copy=False))
-        return idx, np.array(x), np.array(y), np.array(u), np.array(r).reshape(-1, 1), np.array(d).reshape(-1, 1)
+        return (
+            idx,
+            np.array(x),
+            np.array(y),
+            np.array(u),
+            np.array(r).reshape(-1, 1),
+            np.array(d).reshape(-1, 1),
+        )
 
     def update(self):
         if self.learn_step_counter % self.conf["Q_ITERATION"] == 0:
@@ -185,7 +192,13 @@ class DQN:
                         current_best_index_s = self.envx.storage_trace_overall[-1]
                     self.replay_buffer.add(
                         1.0,
-                        (last_input_state.tolist(), last_next_state.tolist(), last_action, last_reward, np.float(done)),
+                        (
+                            last_input_state.tolist(),
+                            last_next_state.tolist(),
+                            last_action,
+                            last_reward,
+                            np.float(done),
+                        ),
                     )
                     if self.replay_buffer.can_update():
                         if is_first:
@@ -198,7 +211,7 @@ class DQN:
         x = range(len(self.envx.cost_trace_overall))
         y2 = [math.log(a, 10) for a in self.envx.cost_trace_overall]
         plt.plot(x, y2, marker="x")
-        plt.savefig(self.conf["NAME"] + "freq.png", dpi=120)
+        plt.savefig(self.conf["exp_name"] + "freq.png", dpi=120)
         plt.clf()
         plt.close()
         return current_best_index, current_best_index_s

@@ -15,7 +15,22 @@ class Env:
         self.db_client1 = ti_conn.TiDBDatabaseConnector(db_name="tpch")
         self.db_client1 = ti_conn.TiDBDatabaseConnector(db_name="tpch")
 
-        self._frequencies = [1659, 1301, 1190, 1741, 1688, 1242, 1999, 1808, 1433, 1083, 1796, 1266, 1046, 1353]
+        self._frequencies = [
+            1659,
+            1301,
+            1190,
+            1741,
+            1688,
+            1242,
+            1999,
+            1808,
+            1433,
+            1083,
+            1796,
+            1266,
+            1046,
+            1353,
+        ]
         self.frequencies = np.array(self._frequencies) / np.array(self._frequencies).sum()
 
         # State info

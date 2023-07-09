@@ -5,8 +5,9 @@ import numpy as np
 import util.tidb_connector as tidb
 
 
-DATABASE = 'tpcds'
+DATABASE = "tpcds"
 N_WORKLOAD = 60
+
 
 class Env:
     def __init__(self, workload, candidates, mode, a):
@@ -59,15 +60,11 @@ class Env:
             current_max_benefit = 0
             current_index = None
             current_index_len = 0
-            original_workload_cost = (
-                np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies
-            ).sum()
+            original_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
 
             for index in self.candidates:
                 ident, _ = self.conn_for_checkout.execute_create_hypo(index)
-                current_workload_cost = (
-                    np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies
-                ).sum()
+                current_workload_cost = (np.array(self.conn_for_checkout.get_queries_cost(self.workload)) * self.frequencies).sum()
                 benefit = (original_workload_cost - current_workload_cost) / original_workload_cost
                 if benefit > 0.4 and current_max_benefit < benefit:
                     current_max_benefit = benefit
@@ -88,38 +85,37 @@ class Env:
         self.max_count -= len(self.pre_create)
 
     def step(self, action):
-        
-        action = action[0]  
+        action = action[0]
 
         # recommended index is existed
-        if self.current_index[action] != 0.0: 
+        if self.current_index[action] != 0.0:
             return self.last_state, 0, False
-        
+
         idx_id, idx_oid = self.conn.execute_create_hypo(self.candidates[action])
         self.current_index[action] = 1.0
-        
+
         # this action influence the envrionment
-        self.current_storage_sum = self.conn.get_index_size(idx_oid) 
+        self.current_storage_sum = self.conn.get_index_size(idx_oid)
         self.n_exist_idx += 1
         l_current_cost = np.array(self.conn.get_queries_cost(self.workload)) * self.frequencies
         current_cost_sum = l_current_cost.sum()
 
         self.last_cost = l_current_cost
         self.last_state = np.append(self.frequencies, self.current_index)
-        
+
         # reward is cost reduction
         reward = (self.init_cost_sum - current_cost_sum) / self.init_cost_sum
         self.last_cost_sum = current_cost_sum
-        
-        # constraint    
+
+        # constraint
         done = False
-        if self.n_exist_idx >= self.max_count or self.current_storage_sum >= 284808301.72:  
+        if self.n_exist_idx >= self.max_count or self.current_storage_sum >= 284808301.72:
             done = True
-        
+
         self.cost_trace_overall.append(current_cost_sum)
         self.index_trace_overall.append(self.current_index)
         self.storage_trace_overall.append(self.current_storage_sum)
-        
+
         return self.last_state, reward, done
 
     def reset(self):

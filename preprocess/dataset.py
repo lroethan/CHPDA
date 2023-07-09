@@ -9,12 +9,16 @@ class TPCH:
         self.dss_query_path = os.path.join(query_root, "queries")
         self.query_env = os.environ.copy()
         self.dbgen_dir = query_root
-        self.query_env['DSS_QUERY'] = self.dss_query_path
+        self.query_env["DSS_QUERY"] = self.dss_query_path
         self.number = number
 
     def gen_one_query(self, i):
-        p = subprocess.Popen([os.path.join(".", "qgen"), str(i)],
-                             cwd=self.dbgen_dir, env=self.query_env, stdout=subprocess.PIPE)
+        p = subprocess.Popen(
+            [os.path.join(".", "qgen"), str(i)],
+            cwd=self.dbgen_dir,
+            env=self.query_env,
+            stdout=subprocess.PIPE,
+        )
         lines = p.stdout.readlines()
         sql = ""
         for i, line in enumerate(lines):
@@ -29,8 +33,7 @@ class TPCH:
         while actual < self.number:
             index = _seq % 22 + 1
             # if index == 15 or index == 7 or index == 19:
-            if index == 15 or index == 7 or index == 19 or index == 2 or index == 11 \
-                    or index == 13 or index == 16 or index == 22:
+            if index == 15 or index == 7 or index == 19 or index == 2 or index == 11 or index == 13 or index == 16 or index == 22:
                 _seq += 1
                 continue
             results.append(self.gen_one_query(index))
@@ -57,9 +60,9 @@ class TPCH:
 
 def load_mode_parameters(model_conf):
     """
-   :param model_conf: file name
-   :return: parameters in json form
+    :param model_conf: file name
+    :return: parameters in json form
     """
-    path = os.path.abspath("..") + "/conf/"+model_conf
+    path = os.path.abspath("..") + "/conf/" + model_conf
     f = open(path)
     return json.load(f)
